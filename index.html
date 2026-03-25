@@ -528,6 +528,7 @@
         import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 
         let scene, camera, renderer, controls, currentVrm, clock;
+        let analyser, dataArray, audioContext;
         const container = document.getElementById('canvas-container');
         const loaderEl = document.getElementById('loader');
         const chatMessages = document.getElementById('chat-messages');
@@ -564,66 +565,34 @@
         });
 
         // Expose setEmotion to window for button clicks
+        // Detailed Emotional State Tracking
+        const targetExpressions = {
+            happy: 0, sad: 0, angry: 0, surprised: 0, relaxed: 0, neutral: 1
+        };
+        const currentExpressions = {
+            happy: 0, sad: 0, angry: 0, surprised: 0, relaxed: 0, neutral: 1
+        };
+
+        // Expose setEmotion to window for button clicks and AI detection
         window.setEmotion = (emotion) => {
             if (!currentVrm) return;
             
-            // Map common model names to our internal emotion names
             const emotionMap = {
-                'happy': 'happy',
-                'sad': 'sad',
-                'angry': 'angry',
-                'neutral': 'neutral',
-                'fear': 'sad',
-                'disgust': 'angry',
-                'surprise': 'happy'
+                'happy': 'happy', 'sad': 'sad', 'angry': 'angry', 'neutral': 'neutral',
+                'fear': 'sad', 'disgust': 'angry', 'surprised': 'surprised', 'surprise': 'surprised'
             };
             
-            const targetEmotion = emotionMap[emotion.toLowerCase()] || 'neutral';
+            const target = emotionMap[emotion.toLowerCase()] || 'neutral';
             
-            // 1. Reset all expressions
-            if (currentVrm.expressionManager) {
-                const expressions = ['happy', 'sad', 'angry', 'surprised', 'relaxed', 'neutral'];
-                expressions.forEach(e => currentVrm.expressionManager.setValue(e, 0));
+            // Set targets for lerping
+            Object.keys(targetExpressions).forEach(e => targetExpressions[e] = 0);
+            if (targetExpressions.hasOwnProperty(target)) {
+                targetExpressions[target] = 1.0;
+            } else {
+                targetExpressions.neutral = 1.0;
             }
 
-            // 2. Reset bones to default A-pose
-            applyAPose(currentVrm);
-
-            // 3. Apply emotion specific changes
-            const humanoid = currentVrm.humanoid;
-            const neck = humanoid.getNormalizedBoneNode('neck');
-            const spine = humanoid.getNormalizedBoneNode('spine');
-            const leftUpperArm = humanoid.getNormalizedBoneNode('leftUpperArm');
-            const rightUpperArm = humanoid.getNormalizedBoneNode('rightUpperArm');
-
-            switch(targetEmotion) {
-                case 'happy':
-                    if (currentVrm.expressionManager) currentVrm.expressionManager.setValue('happy', 1.0);
-                    if (neck) neck.rotation.z = 0.1; // Slight head tilt
-                    if (leftUpperArm) leftUpperArm.rotation.z = 1.0; // Arms slightly more relaxed
-                    if (rightUpperArm) rightUpperArm.rotation.z = -1.0;
-                    break;
-                case 'sad':
-                    if (currentVrm.expressionManager) currentVrm.expressionManager.setValue('sad', 1.0);
-                    if (neck) neck.rotation.x = 0.3; // Head down
-                    if (spine) spine.rotation.x = 0.1; // Slumped
-                    if (leftUpperArm) leftUpperArm.rotation.z = 1.4; // Arms closer to body
-                    if (rightUpperArm) rightUpperArm.rotation.z = -1.4;
-                    break;
-                case 'angry':
-                    if (currentVrm.expressionManager) currentVrm.expressionManager.setValue('angry', 1.0);
-                    if (neck) neck.rotation.x = -0.15; // Head tilted forward
-                    if (leftUpperArm) leftUpperArm.rotation.z = 1.1; // Tense arms
-                    if (rightUpperArm) rightUpperArm.rotation.z = -1.1;
-                    break;
-                case 'neutral':
-                    if (currentVrm.expressionManager) currentVrm.expressionManager.setValue('neutral', 1.0);
-                    // Standard A-pose already applied in reset
-                    break;
-            }
-            
-            document.getElementById('current-emotion-text').innerText = targetEmotion.toUpperCase();
-            console.log(`Emotion set to: ${targetEmotion} (from ${emotion})`);
+            document.getElementById('current-emotion-text').innerText = target.toUpperCase();
         };
 
         // --- Voice & AI Logic ---
@@ -729,7 +698,7 @@
                 captionEl.innerText = `AI: ${aiText}`;
                 appendMessage('ai', aiText);
 
-                // 2. Try to get Sarvam AI Voice
+                // 2. Play AI Voice Response with Analysis
                 try {
                     console.log(`Requesting Sarvam AI Voice (Shruti) in ${aiLang}...`);
                     const sarvamRes = await fetch('http://localhost:8016/tts_sarvam', {
@@ -759,24 +728,24 @@
 
         function playAudio(audioSource) {
             const audio = new Audio(audioSource);
+            
+            // Setup Audio Analysis for Lip-Sync
+            if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            if (!analyser) {
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+            }
+            
+            // Connect Audio element to Analyser
+            const source = audioContext.createMediaElementSource(audio);
+            source.connect(analyser);
+            analyser.connect(audioContext.destination);
+
             audio.play().catch(e => {
                 console.error("Audio Playback Error:", e);
-                // Fallback to text to speech if audio fails
-                playBrowserVoice(document.getElementById('voice-caption').innerText.replace('AI: ', ''));
+                playBrowserVoice(captionEl.innerText.replace('AI: ', ''));
             });
-            
-            // Lip Sync using 'aa' expression
-            const lipSyncInterval = setInterval(() => {
-                if (audio.paused || audio.ended) {
-                    clearInterval(lipSyncInterval);
-                    if (currentVrm.expressionManager) currentVrm.expressionManager.setValue('aa', 0);
-                    return;
-                }
-                if (currentVrm.expressionManager) {
-                    const val = Math.random() * 0.4 + 0.3;
-                    currentVrm.expressionManager.setValue('aa', val);
-                }
-            }, 80);
 
             audio.onended = () => {
                 setTimeout(() => {
@@ -803,12 +772,53 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
+        // Mouse Tracking for Eye Movement
+        const mousePosition = { x: 0, y: 0 };
+        window.addEventListener('mousemove', (e) => {
+            mousePosition.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mousePosition.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
+            
             if (currentVrm) {
                 currentVrm.update(delta);
+
+                // 1. Smooth Expression Blending
+                Object.keys(targetExpressions).forEach(e => {
+                    const lerpSpeed = 5.0 * delta; 
+                    currentExpressions[e] += (targetExpressions[e] - currentExpressions[e]) * lerpSpeed;
+                    if (currentVrm.expressionManager) {
+                        currentVrm.expressionManager.setValue(e, currentExpressions[e]);
+                    }
+                });
+
+                // 2. High-Fidelity Lip Sync
+                if (analyser && dataArray) {
+                    analyser.getByteFrequencyData(dataArray);
+                    let sum = 0;
+                    for(let i=0; i<dataArray.length; i++) sum += dataArray[i];
+                    const average = sum / dataArray.length;
+                    const mouthValue = Math.min(1.0, average / 35); // Tune sensitivity here
+                    if (currentVrm.expressionManager) {
+                        currentVrm.expressionManager.setValue('aa', mouthValue);
+                    }
+                }
+
+                // 3. Eye Tracking (LookAt - Degree based for VRM 2.x)
+                if (currentVrm.lookAt && currentVrm.lookAt.applier) {
+                    const yaw = mousePosition.x * 25;   // Degrees
+                    const pitch = mousePosition.y * 15; // Degrees
+                    
+                    // The method name depends on the applier type (Expression vs Bone)
+                    if (typeof currentVrm.lookAt.applier.applyYawPitch === 'function') {
+                        currentVrm.lookAt.applier.applyYawPitch(yaw, pitch);
+                    }
+                }
             }
+            
             renderer.render(scene, camera);
         }
 
