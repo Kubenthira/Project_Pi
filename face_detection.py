@@ -1,10 +1,15 @@
-import cv2
 import base64
-import numpy as np
-from fer import FER
 from fastapi import FastAPI, Request
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
+import os
+import httpx
+from dotenv import load_dotenv
+
+# Load credentials
+load_dotenv()
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID")
 
 app = FastAPI()
 
@@ -16,59 +21,61 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Use fast + stable detection globally
-print("Loading FER detector...")
-detector = FER(mtcnn=False)
+# Global state
 buffer = []
 
-@app.post("/detect")
-async def detect(request: Request):
-    global buffer
+@app.get("/")
+async def root():
+    return {"message": "VRM Voice Proxy is running"}
+
+@app.post("/tts")
+async def text_to_speech(request: Request):
     try:
         data = await request.json()
-        image_b64 = data.get("image")
+        text = data.get("text")
         
-        if not image_b64:
-            return {"emotion": "Unknown"}
+        if not text or not ELEVENLABS_API_KEY:
+            return {"error": "Missing text or API key"}
+
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
+        
+        headers = {
+            "Accept": "audio/mpeg",
+            "Content-Type": "application/json",
+            "xi-api-key": ELEVENLABS_API_KEY
+        }
+
+        # Multilingual v2 is perfect for Tamil, Telugu, and English
+        payload = {
+            "text": text,
+            "model_id": "eleven_multilingual_v2",
+            "voice_settings": {
+                "stability": 0.5,
+                "similarity_boost": 0.75
+            }
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json=payload, headers=headers)
             
-        # Parse base64
-        header, encoded = image_b64.split(",", 1)
-        image_data = base64.b64decode(encoded)
-        nparr = np.frombuffer(image_data, np.uint8)
-        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        
-        if frame is None:
-            return {"emotion": "Unknown"}
-
-        # frame = cv2.resize(frame, (640, 480)) # Resize if needed, frontend sends small images usually
-
-        results = detector.detect_emotions(frame)
-        
-        if results:
-            # pick largest face (closest)
-            largest_face = max(results, key=lambda x: x["box"][2] * x["box"][3])
-            (x, y, w, h) = largest_face["box"]
-            emotions = largest_face["emotions"]
-
-            # reduce strict filtering 
-            if w * h > 2000:
-                emotion_name = max(emotions, key=emotions.get)
-                confidence = emotions[emotion_name]
-                
-                # lower threshold so not always neutral
-                if confidence > 0.2:
-                    buffer.append(emotion_name)
-                    if len(buffer) > 5:
-                        buffer.pop(0)
-                        
-                    best_emotion = max(set(buffer), key=buffer.count)
-                    return {"emotion": best_emotion}
-                    
-        return {"emotion": "Unknown"}
+            if response.status_code != 200:
+                print(f"ElevenLabs Error: {response.text}")
+                return {"error": "Failed to generate speech"}
+            
+            # Return as base64 to frontend
+            audio_b64 = base64.b64encode(response.content).decode('utf-8')
+            return {"audio": audio_b64}
 
     except Exception as e:
-        print("Error during emotion detection:", e)
-        return {"emotion": "Unknown"}
+        print("TTS Error:", e)
+        return {"error": str(e)}
+
+@app.get("/status")
+async def get_status():
+    return {
+        "status": "online",
+        "voice_configured": bool(ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID)
+    }
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run("face_detection:app", host="0.0.0.0", port=8001, reload=False)
