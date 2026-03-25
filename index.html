@@ -765,12 +765,6 @@
             renderer.render(scene, camera);
         }
 
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') {
-                e.preventDefault();
-                toggleVoice();
-            }
-        });
 
         init();
         animate();
