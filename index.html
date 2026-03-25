@@ -186,53 +186,7 @@
             }
         }
 
-        .ui-overlay-emotions {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 20;
-        }
-
-        .glass-panel-emotions {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 50px;
-            padding: 8px 16px;
-            display: flex;
-            gap: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .emotion-btn {
-            background: transparent;
-            border: none;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 40px;
-            cursor: pointer;
-            font-family: 'Outfit', sans-serif;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-
-        .emotion-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: scale(1.05);
-        }
-
-        .emotion-btn:active {
-            transform: scale(0.95);
-        }
-        .ui-overlay-languages {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
-        }
+        /* Language selection and emotion overlays - Removed for cleaner view */
 
         .glass-panel-languages {
             background: rgba(15, 23, 42, 0.4);
@@ -258,33 +212,26 @@
 
         .lang-btn:hover { background: rgba(255, 255, 255, 0.15); }
 
-        /* Microphone Button */
+        /* Integrated Microphone Styles */
         .voice-btn {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 70px;
-            height: 70px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
-            background: rgba(15, 23, 42, 0.7);
-            backdrop-filter: blur(12px);
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            z-index: 200;
         }
 
-        .voice-btn svg { width: 30px; height: 30px; fill: white; }
+        .voice-btn svg { width: 22px; height: 22px; fill: white; }
 
         .voice-btn:hover {
-            transform: translateX(-50%) scale(1.1);
-            background: rgba(30, 41, 59, 0.9);
+            transform: scale(1.1);
+            background: rgba(99, 102, 241, 0.2);
             border-color: #6366f1;
         }
 
@@ -490,13 +437,18 @@
     </style>
 </head>
 <body>
-    <!-- UI Overlay for Emotions -->
-    <div class="ui-overlay-emotions">
-        <div class="glass-panel-emotions">
-            <button class="emotion-btn" onclick="setEmotion('happy')">😊 Happy</button>
-            <button class="emotion-btn" onclick="setEmotion('sad')">😢 Sad</button>
-            <button class="emotion-btn" onclick="setEmotion('angry')">😠 Angry</button>
-            <button class="emotion-btn" onclick="setEmotion('neutral')">😐 Neutral</button>
+    <div id="chat-container" class="glass-panel">
+        <div id="chat-messages">
+            <div class="message ai">Hi! I'm your AI assistant. How can I help you today?</div>
+        </div>
+        <div id="chat-input-area">
+            <button id="mic-btn" class="voice-btn" onclick="toggleVoice()">
+                <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 3.31-2.69 6-6 6s-6-2.69-6-6H3c0 4.42 3.58 8 8 8s8-3.58 8-8h-2z"/></svg>
+            </button>
+            <input type="text" id="chat-input" placeholder="Say something..." autocomplete="off">
+            <button id="send-btn" onclick="sendMessage()">
+                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
         </div>
     </div>
 
@@ -518,26 +470,8 @@
     <div id="canvas-container"></div>
 
     <!-- Voice Control -->
-        <div class="voice-controls">
-            <button id="mic-btn" class="voice-btn" onclick="toggleVoice()">
-                <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 3.31-2.69 6-6 6s-6-2.69-6-6H3c0 4.42 3.58 8 8 8s8-3.58 8-8h-2z"/></svg>
-            </button>
-            <div id="stt-status" style="font-size: 0.7rem; color: #fff; opacity: 0.6; margin-top: 5px;">STT: Browser (AI-Powered)</div>
-        </div>
         <div id="voice-caption" class="voice-caption"></div>
 
-    <!-- Chat Window UI -->
-    <div id="chat-container" class="glass-panel">
-        <div id="chat-messages">
-            <div class="message ai">Hi! I'm your AI assistant. How can I help you today?</div>
-        </div>
-        <div id="chat-input-area">
-            <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off">
-            <button id="send-btn" onclick="sendMessage()">
-                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-            </button>
-        </div>
-    </div>
 
     <!-- Three.js and plugins via CDN -->
     <script async src="https://ga.jspm.io/npm:es-module-shims@1.8.2/dist/es-module-shims.js"></script>
@@ -848,7 +782,7 @@
 
             // Camera - Positioned for a slightly wider Head-to-Waist framing
             camera = new THREE.PerspectiveCamera(30.0, window.innerWidth / window.innerHeight, 0.1, 20.0);
-            camera.position.set(0.0, 1.4, 1.0);
+            camera.position.set(0.0, 1.3, 2.2);
 
             // Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -860,7 +794,7 @@
             // Controls - View locked as requested
             controls = new OrbitControls(camera, renderer.domElement);
             controls.screenSpacePanning = true;
-            controls.target.set(0.0, 1.35, 0.0);
+            controls.target.set(0.0, 0.9, 0.0);
             controls.enableRotate = false; // Disable rotation
             controls.enableZoom = false;   // Disable zoom
             controls.enablePan = false;    // Disable pan
