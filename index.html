@@ -264,10 +264,10 @@
         .webcam-container {
             position: fixed;
             top: 20px;
-            right: 20px;
-            width: 180px;
+            left: 20px;
+            width: 160px;
             z-index: 100;
-            background: rgba(15, 23, 42, 0.6);
+            background: rgba(15, 23, 42, 0.4);
             backdrop-filter: blur(8px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
@@ -320,13 +320,15 @@
             position: fixed;
             bottom: 30px;
             right: 30px;
-            width: 350px;
-            height: 450px;
+            width: 320px;
+            height: 400px;
             z-index: 300;
             display: flex;
             flex-direction: column;
             overflow: hidden;
             transition: all 0.3s ease;
+            background: rgba(15, 23, 42, 0.3) !important;
+            backdrop-filter: blur(8px) !important;
         }
 
         #chat-messages {
@@ -374,7 +376,7 @@
 
         #chat-input-area {
             padding: 15px;
-            background: rgba(15, 23, 42, 0.6);
+            background: transparent;
             border-top: 1px solid var(--glass-border);
             display: flex;
             gap: 10px;
@@ -852,6 +854,7 @@
                     // Restore front-face and standard scale
                     vrm.scene.scale.set(1.0, 1.0, 1.0);
                     vrm.scene.rotation.y = Math.PI;
+                    vrm.scene.position.x = -0.1; // Shift slightly to the left from user perspective (slightly right from previous -0.3)
                     
                     scene.add(vrm.scene);
                     currentVrm = vrm;
