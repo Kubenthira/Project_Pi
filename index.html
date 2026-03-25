@@ -260,7 +260,35 @@
             z-index: 200;
         }
 
-        /* Webcam Preview Window */
+        /* Emotion Badge */
+        #emotion-badge {
+            position: fixed;
+            top: 20px;
+            left: 200px; /* To the right of the webcam preview */
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        #emotion-badge .dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981; /* Green for active */
+            border-radius: 50%;
+            box-shadow: 0 0 10px #10b981;
+        }
         .webcam-container {
             position: fixed;
             top: 20px;
@@ -439,6 +467,10 @@
     </style>
 </head>
 <body>
+    <div id="emotion-badge">
+        <div class="dot"></div>
+        <span>EMOTION: <span id="current-emotion-text">NEUTRAL</span></span>
+    </div>
     <div id="chat-container" class="glass-panel">
         <div id="chat-messages">
             <div class="message ai">Hi! I'm your AI assistant. How can I help you today?</div>
@@ -500,6 +532,14 @@
         const loaderEl = document.getElementById('loader');
         const chatMessages = document.getElementById('chat-messages');
         const chatInput = document.getElementById('chat-input');
+        const captionEl = document.getElementById('voice-caption');
+
+        let lastInteractionTime = Date.now();
+        let proactiveCooldown = false;
+
+        function updateInteractionTime() {
+            lastInteractionTime = Date.now();
+        }
 
         function appendMessage(role, text) {
             const msgDiv = document.createElement('div');
@@ -507,6 +547,7 @@
             msgDiv.innerText = text;
             chatMessages.appendChild(msgDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+            updateInteractionTime();
         }
 
         window.sendMessage = () => {
@@ -581,6 +622,7 @@
                     break;
             }
             
+            document.getElementById('current-emotion-text').innerText = targetEmotion.toUpperCase();
             console.log(`Emotion set to: ${targetEmotion} (from ${emotion})`);
         };
 
@@ -588,7 +630,7 @@
         let recognition;
         let isRecording = false;
         const micBtn = document.getElementById('mic-btn');
-        const captionEl = document.getElementById('voice-caption');
+        // const captionEl = document.getElementById('voice-caption'); // Removed duplicate
 
         function initRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -632,6 +674,7 @@
             } else {
                 if (!recognition) initRecognition();
                 recognition.start();
+                updateInteractionTime();
             }
         };
 
@@ -655,9 +698,13 @@
             }
         }
 
-        async function processTranscript(text) {
-            captionEl.innerText = "Thinking...";
-            captionEl.style.display = 'block';
+        async function processTranscript(text, isProactive = false) {
+            if (!isProactive) {
+                // Show thinking status only for user requests
+                captionEl.innerText = "Thinking...";
+                captionEl.style.display = 'block';
+            }
+            updateInteractionTime();
 
             try {
                 // 1. Get AI Response from Groq Brain
@@ -959,6 +1006,12 @@
                         if (expressions[bestEmotion] > 0.4) {
                             emotionText.innerText = bestEmotion.toUpperCase();
                             setEmotion(bestEmotion);
+                            
+                            // Proactive Engagement Logic
+                            if (!proactiveCooldown && bestEmotion !== 'neutral' && (Date.now() - lastInteractionTime) > 20000) {
+                                console.log(`Proactive Trigger: User looks ${bestEmotion}`);
+                                triggerProactiveEngagement(bestEmotion);
+                            }
                         }
                     } else {
                         emotionText.innerText = "...";
@@ -968,8 +1021,19 @@
             } catch (err) {
                 console.error("Face Detection Error:", err);
                 emotionText.innerText = "ERROR";
-                alert("Face detection failed to start. Please ensure webcam is allowed and you have an internet connection to load AI models.");
             }
+        }
+
+        function triggerProactiveEngagement(emotion) {
+            proactiveCooldown = true;
+            updateInteractionTime();
+            
+            const proactivePrompt = `(The user looks ${emotion}. Initiate a short, sweet conversation or check-in with them.)`;
+            console.log("Triggering Proactive Chat...");
+            processTranscript(proactivePrompt, true);
+            
+            // 60-second cooldown to avoid being spammy
+            setTimeout(() => { proactiveCooldown = false; }, 60000);
         }
     </script>
 </body>
