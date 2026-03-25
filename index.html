@@ -356,6 +356,17 @@
             color: #10b981; /* Emerald/Green */
             font-weight: bold;
         }
+        /* Recording indicator pulse */
+        .recording {
+            background: #ff4444 !important;
+            box-shadow: 0 0 20px rgba(255, 68, 68, 0.6);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -371,11 +382,7 @@
 
     <!-- UI Overlay for Language Selection -->
     <div class="ui-overlay-languages">
-        <div class="glass-panel-languages">
-            <button class="lang-btn" onclick="setLanguage('ta-IN')">TAM</button>
-            <button class="lang-btn" onclick="setLanguage('te-IN')">TEL</button>
-            <button class="lang-btn" onclick="setLanguage('en-IN')">ENG</button>
-        </div>
+        <!-- Language buttons removed for Auto-Detection -->
     </div>
     <div class="webcam-container" id="webcam-preview">
         <video id="webcam-video" autoplay playsinline></video>
@@ -391,10 +398,13 @@
     <div id="canvas-container"></div>
 
     <!-- Voice Control -->
-    <button class="voice-btn" id="mic-btn" onclick="toggleVoice()">
-        <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 3.31-2.69 6-6 6s-6-2.69-6-6H3c0 4.42 3.58 8 8 8s8-3.58 8-8h-2z"/></svg>
-    </button>
-    <div id="voice-caption">Listening...</div>
+        <div class="voice-controls">
+            <button id="mic-btn" class="voice-btn" onclick="toggleVoice()">
+                <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 3.31-2.69 6-6 6s-6-2.69-6-6H3c0 4.42 3.58 8 8 8s8-3.58 8-8h-2z"/></svg>
+            </button>
+            <div id="stt-status" style="font-size: 0.7rem; color: #fff; opacity: 0.6; margin-top: 5px;">STT: Browser (AI-Powered)</div>
+        </div>
+        <div id="voice-caption" class="voice-caption"></div>
 
     <!-- Three.js and plugins via CDN -->
     <script async src="https://ga.jspm.io/npm:es-module-shims@1.8.2/dist/es-module-shims.js"></script>
@@ -485,118 +495,135 @@
         // --- Voice & AI Logic ---
         let recognition;
         let isRecording = false;
-        let currentLanguage = 'en-IN'; // Default to Indian English
+        const micBtn = document.getElementById('mic-btn');
+        const captionEl = document.getElementById('voice-caption');
 
-        window.toggleVoice = () => {
-            if (isRecording) {
-                stopListening();
-            } else {
-                startListening();
-            }
-        };
-
-        window.setLanguage = (lang) => {
-            currentLanguage = lang;
-            console.log(`Language set to: ${lang}`);
-            const caption = document.getElementById('voice-caption');
-            caption.innerText = `Language: ${lang === 'ta-IN' ? 'Tamil' : lang === 'te-IN' ? 'Telugu' : 'English'}`;
-            caption.style.display = 'block';
-            setTimeout(() => { if (!isRecording) caption.style.display = 'none'; }, 2000);
-        };
-
-        function startListening() {
+        function initRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
-                alert("Speech recognition not supported in this browser.");
+                console.error("Browser STT not supported");
                 return;
             }
-
             recognition = new SpeechRecognition();
-            recognition.lang = currentLanguage; // Use currentLanguage
             recognition.continuous = false;
             recognition.interimResults = false;
+            recognition.lang = 'en-US';
 
             recognition.onstart = () => {
                 isRecording = true;
-                document.getElementById('mic-btn').classList.add('recording');
-                document.getElementById('voice-caption').style.display = 'block';
-                document.getElementById('voice-caption').innerText = "Listening...";
-                setEmotion('neutral'); // Set to neutral when listening starts
+                micBtn.classList.add('recording');
+                captionEl.innerText = "Listening...";
+                captionEl.style.display = 'block';
+                setEmotion('neutral');
             };
 
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
-                console.log("Transcript:", transcript);
-                document.getElementById('voice-caption').innerText = `You: ${transcript}`;
+                console.log("STT Result:", transcript);
+                captionEl.innerText = `You: ${transcript}`;
                 processTranscript(transcript);
             };
 
-            recognition.onerror = (event) => {
-                console.error("Speech Recognition Error:", event.error);
-                stopListening();
+            recognition.onerror = (e) => {
+                console.error("STT Error:", e.error);
+                stopRecognition();
             };
 
             recognition.onend = () => {
-                stopListening();
+                stopRecognition();
             };
-
-            recognition.start();
         }
 
-        function stopListening() {
+        window.toggleVoice = () => {
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                if (!recognition) initRecognition();
+                recognition.start();
+            }
+        };
+
+        function stopRecognition() {
             isRecording = false;
-            document.getElementById('mic-btn').classList.remove('recording');
-            if (recognition) recognition.stop();
+            micBtn.classList.remove('recording');
         }
 
         async function checkBackendStatus() {
             try {
-                const response = await fetch('http://localhost:8001/status');
+                const response = await fetch('http://localhost:8016/status');
                 const data = await response.json();
                 console.log("Backend Status:", data);
                 if (data.status === 'online') {
-                    document.getElementById('voice-caption').innerText = "Voice System Online";
-                    document.getElementById('voice-caption').style.display = 'block';
-                    setTimeout(() => { if (!isRecording) document.getElementById('voice-caption').style.display = 'none'; }, 2000);
+                    captionEl.innerText = "Sweet Shruti AI Online (8016)";
+                    captionEl.style.display = 'block';
+                    setTimeout(() => { if (!isRecording) captionEl.style.display = 'none'; }, 2000);
                 }
             } catch (err) {
-                console.warn("Backend Status Check Failed. Make sure face_detection.py is running on port 8001.");
+                console.warn("Backend Status Check Failed.");
             }
         }
 
         async function processTranscript(text) {
-            document.getElementById('voice-caption').innerText = "Generating Voice...";
+            captionEl.innerText = "Thinking...";
+            captionEl.style.display = 'block';
+
             try {
-                console.log("Sending text to TTS proxy:", text);
-                const response = await fetch('http://localhost:8001/tts', {
+                // 1. Get AI Response from Groq Brain
+                console.log("Sending text to Groq Brain...");
+                const chatRes = await fetch('http://localhost:8016/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text: text })
                 });
+
+                if (!chatRes.ok) {
+                    const errorText = await chatRes.text();
+                    console.error("Groq Proxy Error Response:", errorText);
+                    throw new Error(`Groq Connection Failed: ${chatRes.status}`);
+                }
                 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                const chatData = await chatRes.json();
+                console.log("Groq Response Data:", chatData);
+                
+                const aiText = chatData.response || "";
+                const aiLang = chatData.lang || 'en-IN';
+                captionEl.innerText = `AI: ${aiText}`;
+
+                // 2. Try to get Sarvam AI Voice
+                try {
+                    console.log(`Requesting Sarvam AI Voice (Shruti) in ${aiLang}...`);
+                    const sarvamRes = await fetch('http://localhost:8016/tts_sarvam', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: aiText, lang: aiLang })
+                    });
+                    const sarvamData = await sarvamRes.json();
+
+                    if (sarvamData.audio_base64) {
+                        console.log("Playing Sarvam Premium Voice (Shruti)");
+                        playAudio(sarvamData.audio_base64);
+                        setEmotion('happy');
+                    } else {
+                        throw new Error("Sarvam Failed");
+                    }
+                } catch (err) {
+                    console.error("Sarvam TTS Failed:", err.message);
+                    captionEl.innerText = "Voice Error (Sarvam)";
                 }
 
-                const data = await response.json();
-
-                if (data.audio) {
-                    playVoice(data.audio);
-                    setEmotion('happy');
-                } else if (data.error) {
-                    document.getElementById('voice-caption').innerText = `Error: ${data.error}`;
-                    console.error("TTS Error from Backend:", data.error);
-                }
             } catch (err) {
-                console.error("TTS Proxy Connection Failed:", err);
-                document.getElementById('voice-caption').innerText = "Backend Offline (Check Console)";
+                console.error("Interaction Failed:", err);
+                captionEl.innerText = "Connection Error";
             }
         }
 
-        function playVoice(base64Audio) {
-            const audio = new Audio(`data:audio/mpeg;base64,${base64Audio}`);
-            audio.play();
+        function playAudio(audioSource) {
+            const audio = new Audio(audioSource);
+            audio.play().catch(e => {
+                console.error("Audio Playback Error:", e);
+                // Fallback to text to speech if audio fails
+                playBrowserVoice(document.getElementById('voice-caption').innerText.replace('AI: ', ''));
+            });
             
             // Lip Sync using 'aa' expression
             const lipSyncInterval = setInterval(() => {
@@ -606,16 +633,51 @@
                     return;
                 }
                 if (currentVrm.expressionManager) {
-                    const val = Math.sin(Date.now() * 0.02) * 0.4 + 0.5;
+                    const val = Math.random() * 0.4 + 0.3;
                     currentVrm.expressionManager.setValue('aa', val);
                 }
-            }, 50);
+            }, 80);
 
             audio.onended = () => {
-                document.getElementById('voice-caption').style.display = 'none';
-                setEmotion('neutral');
+                setTimeout(() => {
+                    document.getElementById('voice-caption').style.display = 'none';
+                    setEmotion('neutral');
+                }, 2000);
             };
         }
+
+        function playBrowserVoice(text) {
+            if (!window.speechSynthesis) {
+                console.error("Browser does not support Speech Synthesis");
+                return;
+            }
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-IN';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            if (currentVrm) {
+                currentVrm.update(delta);
+            }
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                toggleVoice();
+            }
+        });
 
         init();
         animate();
@@ -820,33 +882,6 @@
                 emotionText.innerText = "ERROR";
                 alert("Face detection failed to start. Please ensure webcam is allowed and you have an internet connection to load AI models.");
             }
-        }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            const deltaTime = clock.getDelta();
-
-            if (currentVrm) {
-                // Procedural Idle Animation - Bone swaying disabled as requested
-                const t = clock.elapsedTime;
-                
-                // Automatic Blinking - Keeping this as it's an expression
-                const blinkValue = Math.max(0, Math.sin(t * 3.0) * 10 - 9); // Quick blink every few seconds
-                if (currentVrm.expressionManager) {
-                    currentVrm.expressionManager.setValue('blink', blinkValue);
-                }
-
-                currentVrm.update(deltaTime);
-            }
-
-            renderer.render(scene, camera);
         }
     </script>
 </body>

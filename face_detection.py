@@ -1,15 +1,29 @@
 import base64
-from fastapi import FastAPI, Request
-import uvicorn
-from fastapi.middleware.cors import CORSMiddleware
+import json
+import logging
 import os
 import httpx
+import uvicorn
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from groq import Groq
+
+# Configure Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("VRM-Proxy")
 
 # Load credentials
-load_dotenv()
-ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
-ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID")
+load_dotenv(override=True)
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
+
+if not GROQ_API_KEY:
+    logger.warning("GROQ_API_KEY not found in .env!")
+if not SARVAM_API_KEY:
+    logger.warning("SARVAM_API_KEY not found in .env!")
+
+client = Groq(api_key=GROQ_API_KEY)
 
 app = FastAPI()
 
@@ -21,61 +35,121 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global state
-buffer = []
+def log_event(msg):
+    # Log to both file and console
+    logger.info(msg)
+    with open("server.log", "a", encoding="utf-8") as f:
+        f.write(f"{msg}\n")
 
 @app.get("/")
 async def root():
-    return {"message": "VRM Voice Proxy is running"}
+    return {
+        "message": "AI Avatar Proxy is running",
+        "port": 8016,
+        "brain": "Groq Llama-3 (8B)",
+        "voice": "Sarvam Shruti"
+    }
 
-@app.post("/tts")
-async def text_to_speech(request: Request):
+@app.post("/chat")
+async def chat(request: Request):
+    try:
+        data = await request.json()
+        message = data.get("text", "")
+        
+        if not message:
+            return {"response": "I'm listening! What's on your mind?", "lang": "en-IN"}
+
+        system_prompt = (
+            "You are a sweet, cute assistant. Respond in the same language as the user. "
+            "CRITICAL: Your response MUST be a JSON object with two keys: 'response' and 'lang'. "
+            "Example: {\"response\": \"Hello!\", \"lang\": \"en-IN\"}. "
+            "Language codes: ta-IN (Tamil), te-IN (Telugu), en-IN (English), hi-IN (Hindi)."
+        )
+        
+        try:
+            # Use llama-3.1-8b-instant as the decommissioned llama3-8b-8192 replacement
+            completion = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": message}
+                ],
+                response_format={"type": "json_object"}
+            )
+            
+            raw_response = completion.choices[0].message.content
+            log_event(f"Groq Response: {raw_response}")
+            
+            res_data = json.loads(raw_response)
+            if "response" not in res_data: res_data["response"] = "Honey, I'm here for you!"
+            if "lang" not in res_data: res_data["lang"] = "en-IN"
+            return res_data
+            
+        except Exception as groq_err:
+            log_event(f"Groq Error: {str(groq_err)}")
+            return {"response": "I'm a bit shy right now. Can we talk again in a moment?", "lang": "en-IN"}
+
+    except Exception as e:
+        log_event(f"Chat Exception: {str(e)}")
+        return {"error": "Server error in processing chat."}
+
+@app.post("/tts_sarvam")
+async def tts_sarvam(request: Request):
     try:
         data = await request.json()
         text = data.get("text")
-        
-        if not text or not ELEVENLABS_API_KEY:
-            return {"error": "Missing text or API key"}
+        lang = data.get("lang", "en-IN")
 
-        url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
-        
-        headers = {
-            "Accept": "audio/mpeg",
-            "Content-Type": "application/json",
-            "xi-api-key": ELEVENLABS_API_KEY
+        if not text:
+            return {"error": "No text provided for TTS"}
+
+        sarvam_lang = lang if lang in ["ta-IN", "te-IN", "hi-IN", "en-IN"] else "en-IN"
+        url = "https://api.sarvam.ai/text-to-speech"
+        headers = { 
+            "api-subscription-key": SARVAM_API_KEY, 
+            "Content-Type": "application/json" 
         }
-
-        # Multilingual v2 is perfect for Tamil, Telugu, and English
+        
         payload = {
-            "text": text,
-            "model_id": "eleven_multilingual_v2",
-            "voice_settings": {
-                "stability": 0.5,
-                "similarity_boost": 0.75
-            }
+            "inputs": [text],
+            "target_language_code": sarvam_lang,
+            "speaker": "shruti",
+            "model": "bulbul:v3"
         }
+        log_event(f"Sarvam Request: {text[:30]}... ({sarvam_lang})")
 
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, json=payload, headers=headers)
+        async with httpx.AsyncClient() as client_http:
+            response = await client_http.post(url, json=payload, headers=headers, timeout=30.0)
             
             if response.status_code != 200:
-                print(f"ElevenLabs Error: {response.text}")
-                return {"error": "Failed to generate speech"}
+                log_event(f"Sarvam Error: {response.status_code} - {response.text}")
+                # Fallback to 'meera' speaker if 'shruti' fails
+                if "speaker" in response.text.lower() or response.status_code == 400:
+                   log_event("Falling back to Meera speaker...")
+                   payload["speaker"] = "meera"
+                   response = await client_http.post(url, json=payload, headers=headers, timeout=30.0)
+                
+                if response.status_code != 200:
+                    return {"error": f"Sarvam voice was unavailable."}
             
-            # Return as base64 to frontend
-            audio_b64 = base64.b64encode(response.content).decode('utf-8')
-            return {"audio": audio_b64}
+            res_data = response.json()
+            if "audios" in res_data and res_data["audios"]:
+                return {"audio_base64": f"data:audio/wav;base64,{res_data['audios'][0]}"}
+            else:
+                return {"error": "No audio returned from Sarvam API"}
 
     except Exception as e:
-        print("TTS Error:", e)
-        return {"error": str(e)}
+        log_event(f"Sarvam TTS Exception: {str(e)}")
+        return {"error": "Server error in generating voice."}
 
 @app.get("/status")
 async def get_status():
     return {
         "status": "online",
-        "voice_configured": bool(ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID)
+        "brain": "Groq Llama-3",
+        "voice": "Sarvam (Shruti/Meera)",
+        "port": 8016
     }
 
 if __name__ == "__main__":
-    uvicorn.run("face_detection:app", host="0.0.0.0", port=8001, reload=False)
+    uvicorn.run("face_detection:app", host="0.0.0.0", port=8016, reload=False)
