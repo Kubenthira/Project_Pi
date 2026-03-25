@@ -227,6 +227,50 @@
         .emotion-btn:active {
             transform: scale(0.95);
         }
+
+        /* Webcam Preview Window */
+        .webcam-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 180px;
+            z-index: 100;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            display: none; /* Shown when webcam starts */
+        }
+
+        #webcam-video {
+            width: 100%;
+            height: auto;
+            display: block;
+            transform: scaleX(-1); /* Mirror view */
+            background: #000;
+        }
+
+        .webcam-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            font-size: 10px;
+            padding: 4px 8px;
+            text-align: center;
+            font-family: 'Outfit', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #detected-emotion-text {
+            color: #10b981; /* Emerald/Green */
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -240,6 +284,13 @@
         </div>
     </div>
 
+    <!-- Face Detection elements -->
+    <div class="webcam-container" id="webcam-preview">
+        <video id="webcam-video" autoplay playsinline></video>
+        <div class="webcam-label">AI SENSE: <span id="detected-emotion-text">IDLE</span></div>
+    </div>
+    <canvas id="capture-canvas" style="display:none;" width="320" height="240"></canvas>
+
     <div id="loader">
         <div class="spinner"></div>
         <div style="color: var(--text-dim); font-size: 0.9rem;">Loading Model...</div>
@@ -249,6 +300,8 @@
 
     <!-- Three.js and plugins via CDN -->
     <script async src="https://ga.jspm.io/npm:es-module-shims@1.8.2/dist/es-module-shims.js"></script>
+    <!-- face-api.js for browser-based emotion detection -->
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
     <script type="importmap">
         {
           "imports": {
@@ -272,6 +325,19 @@
         // Expose setEmotion to window for button clicks
         window.setEmotion = (emotion) => {
             if (!currentVrm) return;
+            
+            // Map common model names to our internal emotion names
+            const emotionMap = {
+                'happy': 'happy',
+                'sad': 'sad',
+                'angry': 'angry',
+                'neutral': 'neutral',
+                'fear': 'sad',
+                'disgust': 'angry',
+                'surprise': 'happy'
+            };
+            
+            const targetEmotion = emotionMap[emotion.toLowerCase()] || 'neutral';
             
             // 1. Reset all expressions
             if (currentVrm.expressionManager) {
@@ -410,6 +476,9 @@
 
                     // Extract and log bones to the console
                     extractBones(vrm);
+
+                    // Auto-start Face Detection after model load
+                    startFaceDetection();
                 },
                 (progress) => {
                     // Silent loading for cleaner UI
@@ -456,7 +525,7 @@
                             rotation: node.rotation.clone(),
                             threeNode: node
                         };
-                        console.log(`Bone: ${boneName} -> Node: ${node.name}`);
+                        // console.log(`Bone: ${boneName} -> Node: ${node.name}`);
                     }
                 }
             }
@@ -465,6 +534,57 @@
             console.log('Bones extracted to window.vrmBones');
             console.log(bones);
             console.log('---------------------------------');
+        }
+
+        async function startFaceDetection() {
+            const video = document.getElementById('webcam-video');
+            const emotionText = document.getElementById('detected-emotion-text');
+
+            try {
+                emotionText.innerText = "LOADING AI...";
+                
+                // Load face-api models from CDN
+                const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)
+                ]);
+
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } });
+                video.srcObject = stream;
+                
+                // Show the preview window
+                document.getElementById('webcam-preview').style.display = 'block';
+                emotionText.innerText = "READY";
+                console.log("Webcam and Face-API started.");
+
+                // Detection Loop (every 200ms for high responsiveness)
+                setInterval(async () => {
+                    if (video.paused || video.ended) return;
+
+                    const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+                        .withFaceExpressions();
+
+                    if (detections) {
+                        // Get the most likely emotion
+                        const expressions = detections.expressions;
+                        const bestEmotion = Object.keys(expressions).reduce((a, b) => expressions[a] > expressions[b] ? a : b);
+                        
+                        // Only trigger if confidence is reasonable
+                        if (expressions[bestEmotion] > 0.4) {
+                            emotionText.innerText = bestEmotion.toUpperCase();
+                            setEmotion(bestEmotion);
+                        }
+                    } else {
+                        emotionText.innerText = "...";
+                    }
+                }, 200);
+
+            } catch (err) {
+                console.error("Face Detection Error:", err);
+                emotionText.innerText = "ERROR";
+                alert("Face detection failed to start. Please ensure webcam is allowed and you have an internet connection to load AI models.");
+            }
         }
 
         function onWindowResize() {
