@@ -367,6 +367,126 @@
             50% { transform: scale(1.1); }
             100% { transform: scale(1); }
         }
+
+        /* Chat Window UI */
+        #chat-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 350px;
+            height: 450px;
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        #chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            scroll-behavior: smooth;
+        }
+
+        /* Scrollbar styling */
+        #chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        #chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            border-bottom-left-radius: 4px;
+            border: 1px solid var(--glass-border);
+        }
+
+        #chat-input-area {
+            padding: 15px;
+            background: rgba(15, 23, 42, 0.6);
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            gap: 10px;
+        }
+
+        #chat-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 10px 15px;
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #chat-input:focus {
+            border-color: var(--primary);
+        }
+
+        #send-btn {
+            background: var(--primary);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #send-btn:hover {
+            background: var(--primary-hover);
+            transform: scale(1.1);
+        }
+
+        #send-btn svg {
+            width: 18px;
+            height: 18px;
+            fill: white;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 600px) {
+            #chat-container {
+                width: calc(100% - 40px);
+                bottom: 20px;
+                right: 20px;
+                height: 350px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -406,6 +526,19 @@
         </div>
         <div id="voice-caption" class="voice-caption"></div>
 
+    <!-- Chat Window UI -->
+    <div id="chat-container" class="glass-panel">
+        <div id="chat-messages">
+            <div class="message ai">Hi! I'm your AI assistant. How can I help you today?</div>
+        </div>
+        <div id="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off">
+            <button id="send-btn" onclick="sendMessage()">
+                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
+        </div>
+    </div>
+
     <!-- Three.js and plugins via CDN -->
     <script async src="https://ga.jspm.io/npm:es-module-shims@1.8.2/dist/es-module-shims.js"></script>
     <!-- face-api.js for browser-based emotion detection -->
@@ -429,6 +562,29 @@
         let scene, camera, renderer, controls, currentVrm, clock;
         const container = document.getElementById('canvas-container');
         const loaderEl = document.getElementById('loader');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+
+        function appendMessage(role, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${role}`;
+            msgDiv.innerText = text;
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        window.sendMessage = () => {
+            const text = chatInput.value.trim();
+            if (!text) return;
+            
+            appendMessage('user', text);
+            chatInput.value = '';
+            processTranscript(text);
+        };
+
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') window.sendMessage();
+        });
 
         // Expose setEmotion to window for button clicks
         window.setEmotion = (emotion) => {
@@ -588,6 +744,7 @@
                 const aiText = chatData.response || "";
                 const aiLang = chatData.lang || 'en-IN';
                 captionEl.innerText = `AI: ${aiText}`;
+                appendMessage('ai', aiText);
 
                 // 2. Try to get Sarvam AI Voice
                 try {
