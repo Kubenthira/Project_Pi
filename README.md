@@ -1,66 +1,58 @@
-# Premium VRM Viewer
+# Mental Health Companion AI 🧠💖
 
-A lightweight, high-performance VRM model viewer built with Three.js and `@pixiv/three-vrm`.
+A supportive, empathetic AI avatar built with Three.js, Groq (Llama-3), and Sarvam AI. This companion identifies your feelings and provides comfort without diagnosing, always responding in your own language.
 
-## Features
-- **Upload & Display**: Drag and drop or upload any `.vrm` file.
-- **Interactive Camera**: Orbit, zoom, and pan with mouse/touch.
-- **Procedural Animation**: Automatic idle sway and eye blinking.
-- **Visual Controls**: Toggle wireframe mode and customize background color.
+## ✨ Features
+- **Empathetic Companion**: Powered by Groq Llama-3, specifically tuned for supportive mental health interactions.
+- **Multi-language Support**: Automatically detects and responds in **Tamil (ta-IN)**, **Telugu (te-IN)**, **Hindi (hi-IN)**, and **English (en-IN)**.
+- **Premium Voice**: High-quality TTS using Sarvam AI (Shruti/Meera).
+- **Interactive Avatar**: Features a 3D VRM model with real-time expression blending based on emotions.
 - **Premium Design**: Modern UI with glassmorphism and responsive layout.
 
 ---
 
-## 🚀 Quick Start (CDN Version)
+## 🚀 Quick Start (Local Setup)
 
-This version requires no installation or build tools.
+This project consists of a FastAPI backend proxy and a static frontend.
 
-1.  **Open `index.html`** in your browser.
-2.  **Upload a VRM model**: Click the "Upload VRM Model" button or use the file input.
-3.  **Interact**: Use your mouse to explore the model.
+### 1. Prerequisites
+- Python 3.10+
+- A `.env` file in the root directory with the following keys:
+  ```env
+  GROQ_API_KEY=your_key_here
+  SARVAM_API_KEY=your_key_here
+  ```
 
-> [!NOTE]
-> For the best experience, run this through a local server (e.g., VS Code Live Server) to avoid potential CORS issues with some browsers, although the direct file upload approach usually works fine locally.
+### 2. Run the Backend (FastAPI)
+The backend handles the Groq brain and Sarvam voice engine.
+```powershell
+.\.venv\Scripts\python.exe face_detection.py
+```
+*Runs on [http://localhost:8016](http://localhost:8016)*
+
+### 3. Run the Frontend (Static Server)
+Host the `index.html` interface.
+```powershell
+.\.venv\Scripts\python.exe -m http.server 8001
+```
+*Access via [http://localhost:8001/index.html](http://localhost:8001/index.html)*
 
 ---
 
-## 🛠️ Node.js / Vite Version (Optional)
-
-If you want to build a more complex application, use Vite for a modern development experience.
-
-### 1. Setup Project
-```bash
-# Create a new Vite project
-npm create vite@latest vrm-viewer -- --template vanilla
-cd vrm-viewer
-
-# Install dependencies
-npm install three @pixiv/three-vrm
-```
-
-### 2. Implementation (`main.js`)
-Replace the contents of `main.js` with the script logic found in the CDN `index.html`. You will need to change the imports to point to node_modules:
-
-```javascript
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { VRMLoaderPlugin } from '@pixiv/three-vrm';
-
-// ... (Rest of the logic from index.html)
-```
-
-### 3. Run Development Server
-```bash
-npm run dev
-```
+## 📂 Architecture
+- **Brain**: [Groq](https://groq.com) (Llama-3.1-8b-instant)
+- **Voice**: [Sarvam AI](https://www.sarvam.ai) (Bulbul:v3)
+- **Avatar**: Three.js VRM Loader
+- **Emotion**: Face-api.js (Browser-based detection)
 
 ---
 
-## 📂 Folder Structure
+## 🛠️ Folder Structure
 ```text
 FINAL/
-├── index.html        # Main application (CDN version)
-├── README.md         # Documentation
-└── [your-model].vrm  # Your VRM models
+├── face_detection.py  # FastAPI Backend (Proxy)
+├── index.html         # Main application (Frontend)
+├── .env               # API Configuration
+├── README.md          # Documentation
+└── [model].vrm        # 3D Avatar Model
 ```
