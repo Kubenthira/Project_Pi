@@ -1,6 +1,15 @@
 # Mental Health Companion AI 🧠💖
 
-A supportive, empathetic AI avatar built with Three.js, Groq (Llama-3), and Sarvam AI. This companion identifies your feelings and provides comfort without diagnosing, always responding in your own language.
+## 🌟 Overview
+The **Mental Health Companion AI** is a compassionate digital assistant designed to provide emotional support and comfort. Built with modern AI technologies, it serves as a supportive listener that identifies user feelings and offers empathetic responses in real-time.
+
+### 🧘 The Mission
+In a world where mental well-being is increasingly important, this project provides a safe, accessible space for users to express themselves. Our goal is to offer comfort and validation through a friendly, interactive 3D avatar that feels personal and responsive.
+
+### 🛡️ Our Approach: "Comfort, Not Diagnosis"
+- **Identify & Comfort**: The AI is programmed to recognize emotional cues and respond with empathy.
+- **Non-Diagnostic**: Strictly avoids clinical diagnosis or medical advice. It is a companion, not a replacement for professional therapy.
+- **Native Experience**: Responds in the user's preferred language to ensure deep connection and accessibility.
 
 ## ✨ Features
 - **Empathetic Companion**: Powered by Groq Llama-3, specifically tuned for supportive mental health interactions.
