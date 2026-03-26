@@ -24,6 +24,10 @@
       "dest": "api.py"
     },
     {
+      "src": "/feedback",
+      "dest": "api.py"
+    },
+    {
       "src": "/status",
       "dest": "api.py"
     },
