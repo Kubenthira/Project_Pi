@@ -6,7 +6,11 @@
       "use": "@vercel/python"
     },
     {
-      "src": "index.html",
+      "src": "*.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.vrm",
       "use": "@vercel/static"
     }
   ],
@@ -20,8 +24,8 @@
       "dest": "api.py"
     },
     {
-      "src": "/",
-      "dest": "index.html"
+      "src": "/status",
+      "dest": "api.py"
     },
     {
       "src": "/(.*)",

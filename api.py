@@ -24,9 +24,18 @@ if not GROQ_API_KEY:
 if not SARVAM_API_KEY:
     logger.warning("SARVAM_API_KEY not found in .env!")
 
-client = Groq(api_key=GROQ_API_KEY)
-
 app = FastAPI()
+
+# Lazy-loading clients to prevent startup crashes on Vercel
+_groq_client = None
+
+def get_groq_client():
+    global _groq_client
+    if _groq_client is None:
+        if not GROQ_API_KEY:
+            raise ValueError("GROQ_API_KEY is missing. Please set it in Vercel environment variables.")
+        _groq_client = Groq(api_key=GROQ_API_KEY)
+    return _groq_client
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,10 +46,8 @@ app.add_middleware(
 )
 
 def log_event(msg):
-    # Log to both file and console
+    # Log to console only (Vercel logs)
     logger.info(msg)
-    with open("server.log", "a", encoding="utf-8") as f:
-        f.write(f"{msg}\n")
 
 @app.get("/")
 async def root():
@@ -80,6 +87,7 @@ async def chat(request: Request):
         )
         
         try:
+            client = get_groq_client()
             # Use llama-3.1-8b-instant as the replacement model
             completion = client.chat.completions.create(
                 model="llama-3.1-8b-instant",
