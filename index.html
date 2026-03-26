@@ -293,15 +293,15 @@
             position: fixed;
             top: 20px;
             left: 20px;
-            width: 160px;
-            z-index: 100;
-            background: rgba(15, 23, 42, 0.4);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 200px; /* Slightly larger */
+            z-index: 1000; /* Ensure it is on top */
+            background: rgba(15, 23, 42, 0.8); /* More opaque */
+            backdrop-filter: blur(12px);
+            border: 2px solid var(--primary); /* Glowing border */
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            display: none; /* Shown when webcam starts */
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+            display: none; 
         }
 
         #webcam-video {
@@ -1030,7 +1030,15 @@
 
             } catch (err) {
                 console.error("Face Detection Error:", err);
-                emotionText.innerText = "ERROR";
+                emotionText.innerText = "CAMERA BLOCKED / ERROR";
+                emotionText.style.color = "#ef4444";
+                
+                // Alert the user if it's a permission issue or something else
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    alert("Camera access was denied. Please allow camera access to use emotion detection.");
+                } else {
+                    alert("Face Detection Error: " + err.message + "\nPlease ensure no other app is using your camera.");
+                }
             }
         }
 

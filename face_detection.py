@@ -68,7 +68,7 @@ async def chat(request: Request):
         )
         
         try:
-            # Use llama-3.1-8b-instant as the decommissioned llama3-8b-8192 replacement
+            # Use llama-3.1-8b-instant as the replacement model
             completion = client.chat.completions.create(
                 model="llama-3.1-8b-instant",
                 messages=[
