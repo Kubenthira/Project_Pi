@@ -423,10 +423,6 @@
             transition: border-color 0.2s;
         }
 
-        #chat-input:focus {
-            border-color: var(--primary);
-        }
-
         #send-btn {
             background: var(--primary);
             border: none;
@@ -492,7 +488,11 @@
     </div>
     <div class="webcam-container" id="webcam-preview">
         <video id="webcam-video" autoplay playsinline></video>
-        <div class="webcam-label">AI SENSE: <span id="detected-emotion-text">IDLE</span></div>
+        <div class="webcam-label">
+            AI SENSE: <span id="detected-emotion-text">IDLE</span> | 
+            <span id="analysis-state">STATE: -</span> | 
+            <span id="analysis-risk">RISK: -</span>
+        </div>
     </div>
     <canvas id="capture-canvas" style="display:none;" width="320" height="240"></canvas>
 
@@ -534,6 +534,7 @@
         const chatMessages = document.getElementById('chat-messages');
         const chatInput = document.getElementById('chat-input');
         const captionEl = document.getElementById('voice-caption');
+        window.currentDetections = null; // Use window scope for behavioral engine
 
         let lastInteractionTime = Date.now();
         let proactiveCooldown = false;
@@ -541,6 +542,7 @@
         function updateInteractionTime() {
             lastInteractionTime = Date.now();
         }
+
 
         function appendMessage(role, text) {
             const msgDiv = document.createElement('div');
@@ -654,7 +656,7 @@
 
         async function checkBackendStatus() {
             try {
-                const response = await fetch('http://localhost:8016/status');
+                const response = await fetch('/status');
                 const data = await response.json();
                 console.log("Backend Status:", data);
                 if (data.status === 'online') {
@@ -678,10 +680,18 @@
             try {
                 // 1. Get AI Response from Groq Brain
                 console.log("Sending text to Groq Brain...");
-                const chatRes = await fetch('http://localhost:8016/chat', {
+                const chatRes = await fetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: text })
+                    body: JSON.stringify({ 
+                        text: text,
+                        emotion_data: window.currentDetections ? {
+                            emotion: window.currentDetections.expressions.asSortedArray()[0].expression,
+                            score: window.currentDetections.expressions.asSortedArray()[0].probability,
+                            age: window.currentDetections.age,
+                            gender: window.currentDetections.gender
+                        } : null
+                    })
                 });
 
                 if (!chatRes.ok) {
@@ -695,13 +705,26 @@
                 
                 const aiText = chatData.response || "";
                 const aiLang = chatData.lang || 'en-IN';
+                
+                // Update Behavioral Analysis UI (Step 4 of Loop)
+                if (chatData.analysis) {
+                    document.getElementById('analysis-state').innerText = `STATE: ${chatData.analysis.state.toUpperCase()}`;
+                    document.getElementById('analysis-risk').innerText = `RISK: ${chatData.analysis.risk_score.toFixed(1)}`;
+                    
+                    if (chatData.analysis.risk_score > 0.5) {
+                        document.getElementById('analysis-risk').style.color = '#ef4444';
+                    } else {
+                        document.getElementById('analysis-risk').style.color = 'inherit';
+                    }
+                }
+
                 captionEl.innerText = `AI: ${aiText}`;
                 appendMessage('ai', aiText);
 
                 // 2. Play AI Voice Response with Analysis
                 try {
                     console.log(`Requesting Sarvam AI Voice (Shruti) in ${aiLang}...`);
-                    const sarvamRes = await fetch('http://localhost:8016/tts_sarvam', {
+                    const sarvamRes = await fetch('/tts_sarvam', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ text: aiText, lang: aiLang })
@@ -916,6 +939,11 @@
                     // Apply A-pose (remove T-pose)
                     applyAPose(vrm);
 
+                    // Settle physics to prevent initial jitter/snap
+                    if (vrm.springBoneManager) {
+                        vrm.springBoneManager.reset();
+                    }
+
                     // Extract and log bones to the console
                     extractBones(vrm);
 
@@ -1006,6 +1034,8 @@
 
                     const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
                         .withFaceExpressions();
+                    
+                    window.currentDetections = detections; // Update global variable
 
                     if (detections) {
                         // Get the most likely emotion
