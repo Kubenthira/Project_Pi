@@ -300,8 +300,104 @@
             border: 2px solid var(--primary); /* Glowing border */
             border-radius: 12px;
             overflow: hidden;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Decision Trace Panel (Phase 3) */
+        #decision-trace {
+            position: fixed;
+            top: 190px;
+            left: 20px;
+            width: 260px;
+            z-index: 1001;
+            padding: 15px;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            display: none; /* Shown after first interaction */
+            animation: fadeIn 0.5s ease;
+        }
+
+        #decision-trace h3 {
+            margin: 0 0 10px 0;
+            font-size: 0.8rem;
+            color: #e2e8f0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .trace-item {
+            margin-bottom: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .trace-label {
+            color: #64748b;
+            font-size: 0.65rem;
+        }
+
+        .trace-value {
+            color: #cbd5e1;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .trace-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(99, 102, 241, 0.2);
+            color: #818cf8;
+            font-weight: 600;
+        }
+
+        /* Feedback Buttons */
+        .feedback-area {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .message.ai:hover .feedback-area {
+            opacity: 1;
+        }
+
+        .feedback-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .feedback-btn:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .webcam-container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 200px;
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            overflow: hidden;
             box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
-            display: none; 
+            z-index: 1000;
         }
 
         #webcam-video {
@@ -498,8 +594,33 @@
 
     <div id="loader">
         <div class="spinner"></div>
-        <div style="color: var(--text-dim); font-size: 0.9rem;">Loading Model...</div>
     </div>
+
+    <!-- Phase 3: Decision Trace Panel -->
+    <div id="decision-trace">
+        <h3><span style="color: var(--primary)">●</span> Engine Trace</h3>
+        <div class="trace-item">
+            <span class="trace-label">INPUT SIGNALS</span>
+            <span class="trace-value" id="trace-signals">Waiting...</span>
+        </div>
+        <div class="trace-item">
+            <span class="trace-label">RISK | CONFIDENCE</span>
+            <span class="trace-value" id="trace-metrics">0.0 | 0.0</span>
+        </div>
+        <div class="trace-item">
+            <span class="trace-label">STATE CLASSIFICATION</span>
+            <span class="trace-value"><span class="trace-tag" id="trace-state">Neutral</span></span>
+        </div>
+        <div class="trace-item">
+            <span class="trace-label">STRATEGY SELECTED</span>
+            <span class="trace-value" id="trace-strategy">Validation</span>
+        </div>
+        <div class="trace-item" id="trace-trend-area" style="display:none">
+            <span class="trace-label">TEMPORAL PATTERN</span>
+            <span class="trace-value" style="color: #fbbf24">⚠ Persistent Pattern Detected</span>
+        </div>
+    </div>
+    <div style="color: var(--text-dim); font-size: 0.9rem;">Loading Model...</div>
 
     <div id="canvas-container"></div>
 
@@ -529,12 +650,17 @@
 
         let scene, camera, renderer, controls, currentVrm, clock;
         let analyser, dataArray, audioContext;
+        const mousePosition = { x: 0, y: 0 };
         const container = document.getElementById('canvas-container');
-        const loaderEl = document.getElementById('loader');
         const chatMessages = document.getElementById('chat-messages');
         const chatInput = document.getElementById('chat-input');
         const captionEl = document.getElementById('voice-caption');
-        window.currentDetections = null; // Use window scope for behavioral engine
+        const loaderEl = document.getElementById('loader');
+        const senseLabel = document.getElementById('detected-emotion-text');
+
+        // Dynamic API Base for Local (8001) vs. Vercel deployment
+        const BACKEND_URL = window.location.port === '8001' ? 'http://localhost:8016' : '';
+        window.currentDetections = null; 
 
         let lastInteractionTime = Date.now();
         let proactiveCooldown = false;
@@ -547,11 +673,41 @@
         function appendMessage(role, text) {
             const msgDiv = document.createElement('div');
             msgDiv.className = `message ${role}`;
-            msgDiv.innerText = text;
+            
+            const textSpan = document.createElement('span');
+            textSpan.innerText = text;
+            msgDiv.appendChild(textSpan);
+
+            if (role === 'ai') {
+                const feedbackArea = document.createElement('div');
+                feedbackArea.className = 'feedback-area';
+                feedbackArea.innerHTML = `
+                    <button class="feedback-btn" onclick="submitFeedback(this, 'helpful')">Helpful</button>
+                    <button class="feedback-btn" onclick="submitFeedback(this, 'not-helpful')">Not Helpful</button>
+                `;
+                msgDiv.appendChild(feedbackArea);
+            }
+
             chatMessages.appendChild(msgDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
             updateInteractionTime();
         }
+
+        window.submitFeedback = (btn, type) => {
+            console.log(`Feedback submitted: ${type}`);
+            
+            // Send to backend
+            fetch(`${BACKEND_URL}/feedback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: type, timestamp: Date.now() })
+            });
+
+            const activeArea = btn.parentElement;
+            if (activeArea) {
+                activeArea.innerHTML = `<span style="font-size: 0.6rem; color: #10b981">Thank you!</span>`;
+            }
+        };
 
         window.sendMessage = () => {
             const text = chatInput.value.trim();
@@ -656,7 +812,7 @@
 
         async function checkBackendStatus() {
             try {
-                const response = await fetch('/status');
+                const response = await fetch(`${BACKEND_URL}/status`);
                 const data = await response.json();
                 console.log("Backend Status:", data);
                 if (data.status === 'online') {
@@ -680,7 +836,7 @@
             try {
                 // 1. Get AI Response from Groq Brain
                 console.log("Sending text to Groq Brain...");
-                const chatRes = await fetch('/chat', {
+                const chatRes = await fetch(`${BACKEND_URL}/chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -706,11 +862,25 @@
                 const aiText = chatData.response || "";
                 const aiLang = chatData.lang || 'en-IN';
                 
-                // Update Behavioral Analysis UI (Step 4 of Loop)
+                // Update Behavioral Analysis UI & Trace (Phase 3)
                 if (chatData.analysis) {
+                    document.getElementById('decision-trace').style.display = 'block';
+                    
+                    // Update Overlays
                     document.getElementById('analysis-state').innerText = `STATE: ${chatData.analysis.state.toUpperCase()}`;
                     document.getElementById('analysis-risk').innerText = `RISK: ${chatData.analysis.risk_score.toFixed(1)}`;
                     
+                    // Update Trace Panel
+                    const currentEmotion = window.currentDetections ? window.currentDetections.expressions.asSortedArray()[0].expression : "Text-only";
+                    document.getElementById('trace-signals').innerText = `Emotion: ${currentEmotion}`;
+                    document.getElementById('trace-metrics').innerText = `${chatData.analysis.risk_score.toFixed(2)} | ${chatData.analysis.confidence_score.toFixed(2)}`;
+                    document.getElementById('trace-state').innerText = chatData.analysis.state;
+                    document.getElementById('trace-strategy').innerText = chatData.analysis.selected_technique;
+                    
+                    // Trend Highlight
+                    const trendArea = document.getElementById('trace-trend-area');
+                    trendArea.style.display = chatData.analysis.is_trend ? 'block' : 'none';
+
                     if (chatData.analysis.risk_score > 0.5) {
                         document.getElementById('analysis-risk').style.color = '#ef4444';
                     } else {
@@ -724,7 +894,7 @@
                 // 2. Play AI Voice Response with Analysis
                 try {
                     console.log(`Requesting Sarvam AI Voice (Shruti) in ${aiLang}...`);
-                    const sarvamRes = await fetch('/tts_sarvam', {
+                    const sarvamRes = await fetch(`${BACKEND_URL}/tts_sarvam`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ text: aiText, lang: aiLang })
@@ -796,7 +966,6 @@
         }
 
         // Mouse Tracking for Eye Movement
-        const mousePosition = { x: 0, y: 0 };
         window.addEventListener('mousemove', (e) => {
             mousePosition.x = (e.clientX / window.innerWidth) * 2 - 1;
             mousePosition.y = -(e.clientY / window.innerHeight) * 2 + 1;

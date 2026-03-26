@@ -24,6 +24,15 @@ if not GROQ_API_KEY:
 if not SARVAM_API_KEY:
     logger.warning("SARVAM_API_KEY not found in .env!")
 
+session_history = {}
+
+# Step 7: Safety Escalation Resources
+SAFETY_RESOURCES = {
+    "en-IN": "I've detected a high level of distress. Please know that you are not alone. Please reach out to a professional or a helpline: iCall (9152987821) or Vandrevala Foundation (18602662345).",
+    "ta-IN": "அதிக மன உளைச்சலை நான் உணர்கிறேன். நீங்கள் தனியாக இல்லை. தயவுசெய்து உதவிக்கு அழைக்கவும்: iCall (9152987821) அல்லது Vandrevala Foundation (18602662345).",
+    "hi-IN": "मैंने बहुत अधिक संकट महसूस किया है। कृपया जानें कि आप अकेले नहीं हैं। कृपया किसी पेशेवर या हेल्पलाइन से संपर्क करें: iCall (9152987821) या Vandrevala Foundation (18602662345)।"
+}
+
 app = FastAPI()
 
 # Lazy-loading clients to prevent startup crashes on Vercel
@@ -69,9 +78,32 @@ async def chat(request: Request):
         if emotion_data:
             log_event(f"Signals Received - Emotion: {emotion_data.get('emotion')}, Confidence: {emotion_data.get('score')}")
         
-        # Step 2: Behavioral Analysis (Explicit Python Logic)
-        analysis = get_behavioral_analysis(message, emotion_data)
+        # Get session ID (default to 'global' if not provided)
+        session_id = data.get("session_id", "default_user")
+        if session_id not in session_history:
+            session_history[session_id] = []
+            
+        # Step 2: Behavioral Analysis with History
+        analysis = get_behavioral_analysis(message, emotion_data, session_history[session_id])
+        
+        # Update history (keep last 5)
+        session_history[session_id].append(analysis)
+        if len(session_history[session_id]) > 5:
+            session_history[session_id].pop(0)
+
         log_event(f"Analysis - State: {analysis['state']}, Risk: {analysis['risk_score']}")
+
+        # Phase 2: Step 7 - Safety Circuit Breaker
+        if analysis['risk_score'] >= 0.8:
+            log_event(f"SAFETY TRIGGERED: High Risk ({analysis['risk_score']}) detected for {session_id}")
+            lang = data.get("lang", "en-IN")
+            safety_msg = SAFETY_RESOURCES.get(lang, SAFETY_RESOURCES["en-IN"])
+            return {
+                "response": safety_msg,
+                "lang": lang,
+                "analysis": analysis,
+                "safety_triggered": True
+            }
 
         if not message:
             return {"response": "I'm listening! What's on your mind?", "lang": "en-IN", "analysis": analysis}
@@ -172,6 +204,15 @@ async def get_status():
         "voice": "Sarvam (Shruti/Meera)",
         "port": 8016
     }
+
+@app.post("/feedback")
+async def feedback(data: dict):
+    """
+    Captures explicit user feedback (Step 11).
+    """
+    log_event(f"FEEDBACK RECEIVED: {data}")
+    # In a real app, this would update technique weights in the DB
+    return {"status": "success", "message": "Feedback received"}
 
 if __name__ == "__main__":
     uvicorn.run("api:app", host="0.0.0.0", port=8016, reload=False)

@@ -59,6 +59,8 @@ def classify_state(text, emotion_data):
     detected_emotion = emotion_data.get('emotion', 'neutral').lower()
     text = text.lower()
     
+    if "end it" in text or "kill myself" in text or "suicide" in text:
+        return "Immediate Crisis/High Risk"
     if "panic" in text or "scared" in text or detected_emotion == "fearful":
         return "Anxiety/Panic"
     if "tired" in text or "exhausted" in text or "burnout" in text:
@@ -86,7 +88,31 @@ def select_technique(state):
     }
     return TECHNIQUE_MAP.get(state, "Validating Reflection")
 
-def get_behavioral_analysis(text, emotion_data):
+def analyze_state_trends(current_state, history):
+    """
+    Refines the state based on historical trends (Contextual Awareness).
+    """
+    if not history:
+        return current_state, False
+    
+    # Extract last 3-5 states
+    past_states = [h.get('state') for h in history if h.get('state')]
+    
+    # Pattern: Persistent Fatigue
+    if current_state == "Fatigue/Burnout" and past_states.count("Fatigue/Burnout") >= 2:
+        return "Chronic Fatigue Pattern", True
+        
+    # Pattern: Rising Anxiety
+    if current_state == "Anxiety/Panic" and past_states.count("Anxiety/Panic") >= 2:
+        return "Persistent Anxiety Pattern", True
+
+    # Pattern: Stuck in Overthinking
+    if current_state == "Overthinking" and past_states.count("Overthinking") >= 2:
+        return "Recursive Thought Loop", True
+        
+    return current_state, False
+
+def get_behavioral_analysis(text, emotion_data, history=None):
     """
     Main entry point for the scoring engine.
     """
@@ -94,14 +120,33 @@ def get_behavioral_analysis(text, emotion_data):
     if emotion_data is None:
         emotion_data = {}
         
+    if history is None:
+        history = []
+        
     risk = calculate_risk_score(text)
     confidence = calculate_confidence_score(text, emotion_data)
-    state = classify_state(text, emotion_data)
-    technique = select_technique(state)
     
+    # 1. Initial State Classification
+    base_state = classify_state(text, emotion_data)
+    
+    # 2. Contextual Refinement (Phase 2: Step 9)
+    state, is_trend = analyze_state_trends(base_state, history)
+    
+    # 3. Technique Selection (Adapts to trend)
+    technique = select_technique(state)
+    if is_trend:
+        # Override technique for persistent patterns
+        if "Anxiety" in state:
+            technique = "Advanced Grounding + Clinical Referral Suggestion"
+        elif "Fatigue" in state:
+            technique = "Energy Conservation Strategy (Pacing)"
+        elif "Overthinking" in state:
+            technique = "Thought-Stopping Visualization"
+
     return {
         "risk_score": risk,
         "confidence_score": confidence,
         "state": state,
-        "selected_technique": technique
+        "selected_technique": technique,
+        "is_trend": is_trend
     }
