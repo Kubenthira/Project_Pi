@@ -60,7 +60,8 @@ async def chat(request: Request):
             return {"response": "I'm listening! What's on your mind?", "lang": "en-IN"}
 
         system_prompt = (
-            "You are a sweet, cute assistant. Respond in the same language as the user. "
+            "You are a compassionate and supportive mental health companion. Your role is to identify the user's feelings and provide comfort and empathy. "
+            "You DO NOT diagnose any medical or mental health conditions. Always respond in the user's own language. "
             "CRITICAL: Your response MUST be a JSON object with two keys: 'response' and 'lang'. "
             "Example: {\"response\": \"Hello!\", \"lang\": \"en-IN\"}. "
             "Language codes: ta-IN (Tamil), te-IN (Telugu), en-IN (English), hi-IN (Hindi)."
