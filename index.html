@@ -639,6 +639,11 @@
             <div class="trace-tile-label">💊 Strategy</div>
             <div class="trace-tile-value" id="tile-strategy-value">—</div>
         </div>
+        <div class="trace-tile" id="tile-voice">
+            <div class="trace-tile-label">🎙️ Voice Tone</div>
+            <div class="trace-tile-value" id="tile-voice-value">—</div>
+            <div class="trace-tile-sub" id="tile-voice-sub">lang: detecting...</div>
+        </div>
     </div>
     <div style="color: var(--text-dim); font-size: 0.9rem;">Loading Model...</div>
 
@@ -788,7 +793,53 @@
             recognition = new SpeechRecognition();
             recognition.continuous = false;
             recognition.interimResults = false;
-            recognition.lang = 'en-US';
+            recognition.lang = 'en-IN'; // en-IN supports Tanglish/Hinglish naturally
+
+            // ─── Voice Tone & Language Detection Helpers ───
+            window.detectLanguage = function(text) {
+                // Tamil Unicode range
+                if (/[\u0B80-\u0BFF]/.test(text)) return 'ta';
+                // Telugu Unicode range
+                if (/[\u0C00-\u0C7F]/.test(text)) return 'te';
+                // Hindi/Devanagari Unicode range
+                if (/[\u0900-\u097F]/.test(text)) return 'hi';
+                // Common Tamil transliterated words
+                const tamilWords = ['enna', 'illa', 'irukku', 'panna', 'sollu', 'vaanga', 'thala', 'machan', 'naan', 'enaku', 'romba', 'poda', 'da', 'di'];
+                // Common Telugu transliterated words
+                const teluguWords = ['enti', 'ledu', 'undi', 'cheyyi', 'raa', 'anna', 'akka', 'nenu', 'naaku', 'chala', 'em', 'ayindi'];
+                // Common Hindi transliterated words
+                const hindiWords = ['kya', 'hai', 'nahi', 'karo', 'yaar', 'bhai', 'main', 'mujhe', 'bahut', 'acha', 'theek'];
+                const lower = text.toLowerCase();
+                const words = lower.split(/\s+/);
+                let ta = 0, te = 0, hi = 0;
+                words.forEach(w => {
+                    if (tamilWords.includes(w)) ta++;
+                    if (teluguWords.includes(w)) te++;
+                    if (hindiWords.includes(w)) hi++;
+                });
+                if (ta > te && ta > hi && ta >= 1) return 'ta';
+                if (te > ta && te > hi && te >= 1) return 'te';
+                if (hi > ta && hi > te && hi >= 1) return 'hi';
+                return 'en';
+            };
+
+            window.detectVoiceTone = function(text) {
+                const lower = text.toLowerCase();
+                const hasExclamation = (text.match(/!/g) || []).length;
+                const hasQuestion = text.includes('?');
+                const hasCaps = text !== lower && (text.match(/[A-Z]/g) || []).length > text.length * 0.4;
+                const sadWords = ['sad', 'tired', 'exhausted', 'hopeless', 'alone', 'lonely', 'depressed', 'cry', 'crying'];
+                const angryWords = ['angry', 'frustrated', 'annoyed', 'hate', 'stupid', 'irritated', 'fed up', 'sick of'];
+                const anxiousWords = ['anxious', 'worried', 'scared', 'nervous', 'panic', 'stressed', 'overthinking'];
+                const happyWords = ['happy', 'great', 'awesome', 'amazing', 'wonderful', 'excited', 'good', 'fantastic'];
+                
+                if (angryWords.some(w => lower.includes(w)) || (hasCaps && hasExclamation > 1)) return 'Agitated';
+                if (sadWords.some(w => lower.includes(w))) return 'Low / Subdued';
+                if (anxiousWords.some(w => lower.includes(w)) || hasQuestion) return 'Anxious / Restless';
+                if (happyWords.some(w => lower.includes(w))) return 'Upbeat';
+                if (hasExclamation > 0) return 'Expressive';
+                return 'Steady';
+            };
 
             recognition.onstart = () => {
                 // Phase 4: Voice Interruption
@@ -806,8 +857,24 @@
 
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
-                console.log("STT Result:", transcript);
+                const confidence = event.results[0][0].confidence;
+                console.log("STT Result:", transcript, "Confidence:", confidence);
                 captionEl.innerText = `You: ${transcript}`;
+
+                // Detect language and tone
+                const detectedLang = window.detectLanguage(transcript);
+                const voiceTone = window.detectVoiceTone(transcript);
+                window.lastVoiceTone = voiceTone;
+                window.lastDetectedLang = detectedLang;
+
+                // Update Voice Tone tile
+                const langNames = { 'en': 'English', 'ta': 'Tamil', 'te': 'Telugu', 'hi': 'Hindi' };
+                const toneEl = document.getElementById('tile-voice-value');
+                if (toneEl) toneEl.innerText = voiceTone;
+                const toneSub = document.getElementById('tile-voice-sub');
+                if (toneSub) toneSub.innerText = `lang: ${langNames[detectedLang] || 'English'} | conf: ${(confidence || 0).toFixed(2)}`;
+
+                console.log(`Detected: lang=${detectedLang}, tone=${voiceTone}`);
                 processTranscript(transcript);
             };
 
@@ -872,7 +939,9 @@
                             score: window.currentDetections.expressions.asSortedArray()[0].probability,
                             age: window.currentDetections.age,
                             gender: window.currentDetections.gender
-                        } : null
+                        } : null,
+                        voice_tone: window.lastVoiceTone || null,
+                        detected_lang: window.lastDetectedLang || 'en'
                     })
                 });
 

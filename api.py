@@ -73,10 +73,14 @@ async def chat(request: Request):
         data = await request.json()
         message = data.get("text", "")
         emotion_data = data.get("emotion_data", {}) # New: Receive emotion signals
+        voice_tone = data.get("voice_tone", None)  # Voice tone from frontend
+        detected_lang = data.get("detected_lang", "en")  # User's detected language
         
         # Log signals
         if emotion_data:
             log_event(f"Signals Received - Emotion: {emotion_data.get('emotion')}, Confidence: {emotion_data.get('score')}")
+        if voice_tone:
+            log_event(f"Voice Tone: {voice_tone}, Language: {detected_lang}")
         
         # Get session ID (default to 'global' if not provided)
         session_id = data.get("session_id", "default_user")
@@ -85,6 +89,10 @@ async def chat(request: Request):
             
         # Step 2: Behavioral Analysis with History
         analysis = get_behavioral_analysis(message, emotion_data, session_history[session_id])
+        
+        # Add voice tone to analysis for frontend display
+        analysis["voice_tone"] = voice_tone or "Unknown"
+        analysis["user_lang"] = detected_lang
         
         # Update history (keep last 5)
         session_history[session_id].append(analysis)
@@ -113,6 +121,40 @@ async def chat(request: Request):
         if emotion_data and emotion_data.get("emotion"):
             face_context = f"[FACE DETECTED: {emotion_data['emotion']} (confidence: {emotion_data.get('score', 0):.1f})]"
 
+        # Adaptive language style based on detected user language
+        lang_styles = {
+            "ta": (
+                "Respond in fluent Tanglish (English + Tamil). "
+                "Examples: 'Arey enna achu da?', 'Parvaledu, we'll figure it out.', 'Romba stress ah irukku, let's try something.'"
+            ),
+            "te": (
+                "Respond in fluent Telugulish (English + Telugu). "
+                "Examples: 'Em ayindi ra?', 'Chala tough ga undi, I understand.', 'Parvaledu, relax avvu.'"
+            ),
+            "hi": (
+                "Respond in fluent Hinglish (English + Hindi). "
+                "Examples: 'Kya hua yaar?', 'Bahut tough lag raha hai, I get it.', 'Theek hai, let's try something.'"
+            ),
+            "en": (
+                "Respond in warm, casual English with occasional South-Indian flavor. "
+                "Examples: 'That sounds really heavy, you know...', 'Parvaledu, we got this.'"
+            ),
+        }
+        lang_instruction = lang_styles.get(detected_lang, lang_styles["en"])
+
+        # Adaptive tone based on voice tone
+        tone_instruction = ""
+        if voice_tone:
+            tone_map = {
+                "Agitated": "The user sounds agitated/frustrated. Be extra calm and grounding. Don't match their energy — be the anchor.",
+                "Low / Subdued": "The user sounds low and subdued. Be extra warm and gentle. Speak softly, validate their pain.",
+                "Anxious / Restless": "The user sounds anxious. Be reassuring and steady. Guide them to slow down.",
+                "Upbeat": "The user sounds upbeat! Match their positive energy. Celebrate with them.",
+                "Expressive": "The user is being expressive. Engage warmly and mirror their enthusiasm.",
+                "Steady": "The user sounds calm and steady. Be conversational and natural.",
+            }
+            tone_instruction = tone_map.get(voice_tone, "")
+
         system_prompt = (
             "You are Theraπ — a warm, emotionally intelligent guide. "
             "YOUR ROLE: Help users understand what they're feeling and gently guide them through it. "
@@ -120,19 +162,20 @@ async def chat(request: Request):
             "\n\nRULES (STRICT): "
             "1. NEVER say 'Hi', 'Hello', or any greeting. Jump straight into the conversation. "
             "2. Be CONCISE: 1-3 sentences MAX. This is a CONVERSATION, not a lecture. "
-            "3. Speak in fluent Tanglish — mostly English with natural Tamil/Telugu sprinkled in. "
-            "   Good examples: 'Arey, that sounds tough yaar...', 'Enna achu? Tell me more...', 'Parvaledu, let us try something together.' "
-            "   BAD: Pure Tamil or pure Telugu paragraphs. BAD: Formal English. "
+            f"3. LANGUAGE: {lang_instruction} "
+            "   NEVER use pure Tamil/Telugu/Hindi paragraphs. Always mix with English naturally. "
             "4. Name what the user is feeling: e.g., 'Sounds like you're carrying a lot of frustration, no?' "
             "5. ACTIVELY guide them through the technique — don't just mention it. "
             "   Example: If technique is 'Box Breathing', say: 'Let's breathe together — inhale 4 seconds... hold 4... exhale 4... ready?' "
             "   Example: If technique is 'Grounding (5-4-3-2-1)', say: 'Quick thing — tell me 5 things you can see right now?' "
             "6. If things seem serious, gently suggest professional help without scaring them. "
             "7. Be interruptible — keep responses SHORT so the user can jump in anytime. "
-            "\n\nCONTEXT FROM ENGINE (use this, don't ignore it): "
+            f"\n\nTONE GUIDANCE: {tone_instruction} "
+            f"\n\nCONTEXT FROM ENGINE: "
             f"Detected State: {analysis['state']} | Risk Level: {analysis['risk_score']:.2f} | "
             f"Recommended Technique: {analysis['selected_technique']} | "
-            f"Multimodal Confidence: {analysis['confidence_score']:.2f} "
+            f"Multimodal Confidence: {analysis['confidence_score']:.2f} | "
+            f"Voice Tone: {voice_tone or 'N/A'} "
             "\n\nJSON response format: {\"response\": \"your message here\", \"lang\": \"en-IN\"}"
         )
 
