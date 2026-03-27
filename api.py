@@ -121,27 +121,6 @@ async def chat(request: Request):
         if emotion_data and emotion_data.get("emotion"):
             face_context = f"[FACE DETECTED: {emotion_data['emotion']} (confidence: {emotion_data.get('score', 0):.1f})]"
 
-        # Adaptive language style based on detected user language
-        lang_styles = {
-            "ta": (
-                "Respond in fluent Tanglish (English + Tamil). "
-                "Examples: 'Arey enna achu da?', 'Parvaledu, we'll figure it out.', 'Romba stress ah irukku, let's try something.'"
-            ),
-            "te": (
-                "Respond in fluent Telugulish (English + Telugu). "
-                "Examples: 'Em ayindi ra?', 'Chala tough ga undi, I understand.', 'Parvaledu, relax avvu.'"
-            ),
-            "hi": (
-                "Respond in fluent Hinglish (English + Hindi). "
-                "Examples: 'Kya hua yaar?', 'Bahut tough lag raha hai, I get it.', 'Theek hai, let's try something.'"
-            ),
-            "en": (
-                "Respond in warm, casual English with occasional South-Indian flavor. "
-                "Examples: 'That sounds really heavy, you know...', 'Parvaledu, we got this.'"
-            ),
-        }
-        lang_instruction = lang_styles.get(detected_lang, lang_styles["en"])
-
         # Adaptive tone based on voice tone
         tone_instruction = ""
         if voice_tone:
@@ -162,8 +141,17 @@ async def chat(request: Request):
             "\n\nRULES (STRICT): "
             "1. NEVER say 'Hi', 'Hello', or any greeting. Jump straight into the conversation. "
             "2. Be CONCISE: 1-3 sentences MAX. This is a CONVERSATION, not a lecture. "
-            f"3. LANGUAGE: {lang_instruction} "
-            "   NEVER use pure Tamil/Telugu/Hindi paragraphs. Always mix with English naturally. "
+            "3. LANGUAGE — DETECT AND MATCH THE USER'S LANGUAGE AUTOMATICALLY: "
+            "   - If the user writes/speaks in Tamil or Tanglish → respond in Tanglish (English + Tamil naturally mixed). "
+            "     Example: 'Arey enna achu da? Let's try something together...' "
+            "   - If the user writes/speaks in Telugu or Telugulish → respond in Telugulish (English + Telugu naturally mixed). "
+            "     Example: 'Em ayindi ra? Chala tough ga undi, I understand...' "
+            "   - If the user writes/speaks in Hindi or Hinglish → respond in Hinglish (English + Hindi naturally mixed). "
+            "     Example: 'Kya hua yaar? Bahut tough lag raha hai, I get it...' "
+            "   - If the user writes/speaks in English → respond in warm, casual English with South-Indian warmth. "
+            "     Example: 'That sounds really heavy, you know... parvaledu, we got this.' "
+            "   - NEVER use pure Tamil/Telugu/Hindi. ALWAYS mix naturally with English like real people talk. "
+            "   - Match the EXACT same language style the user used. If they mix languages, you mix languages. "
             "4. USE CONTEXT IN YOUR REPLY — don't ignore what the engine detected: "
             f"   - The user's FACE looks: {emotion_data.get('emotion', 'unknown') if emotion_data else 'not visible'}. "
             f"   - Their VOICE TONE is: {voice_tone or 'not detected'}. "
@@ -185,7 +173,8 @@ async def chat(request: Request):
             f"Recommended Technique: {analysis['selected_technique']} | "
             f"Multimodal Confidence: {analysis['confidence_score']:.2f} | "
             f"Voice Tone: {voice_tone or 'N/A'} "
-            "\n\nJSON response format: {\"response\": \"your message here\", \"lang\": \"en-IN\"}"
+            "\n\nJSON response format: {\"response\": \"your message here\", \"lang\": \"<detected-lang-code like en-IN, ta-IN, te-IN, hi-IN>\", "
+            "\"detected_lang\": \"<en/ta/te/hi based on what language the user used>\"}"
         )
 
         # Build the user message with multimodal context
@@ -210,6 +199,9 @@ async def chat(request: Request):
             res_data = json.loads(raw_response)
             if "response" not in res_data: res_data["response"] = "Honey, I'm here for you!"
             if "lang" not in res_data: res_data["lang"] = "en-IN"
+            # Use LLM-detected language, fallback to client-side detection
+            if "detected_lang" not in res_data:
+                res_data["detected_lang"] = detected_lang
             res_data["analysis"] = analysis
             return res_data
             
@@ -227,11 +219,68 @@ async def tts_sarvam(request: Request):
         data = await request.json()
         text = data.get("text")
         lang = data.get("lang", "en-IN")
+        state = data.get("state", "General Reflection")
+        voice_tone = data.get("voice_tone", "Steady")
+        user_lang = data.get("user_lang", "en")
 
         if not text:
             return {"error": "No text provided for TTS"}
 
-        sarvam_lang = lang if lang in ["ta-IN", "te-IN", "hi-IN", "en-IN"] else "en-IN"
+        # Map user language to Sarvam language code
+        lang_map = {
+            "ta": "ta-IN",  # Tamil → Sarvam Tamil
+            "te": "te-IN",  # Telugu → Sarvam Telugu
+            "hi": "hi-IN",  # Hindi → Sarvam Hindi
+            "en": "en-IN",  # English → Sarvam English (Indian)
+        }
+        sarvam_lang = lang_map.get(user_lang, lang if lang in ["ta-IN", "te-IN", "hi-IN", "en-IN"] else "en-IN")
+
+        # Adaptive pace based on emotional state
+        # Slower for heavy emotions, faster for upbeat
+        pace_map = {
+            "Crisis / Immediate Risk": 0.8,
+            "Depression / Deep Sadness": 0.75,
+            "Anxiety / Panic": 0.85,
+            "Fatigue / Burnout": 0.8,
+            "Overthinking / Rumination": 0.85,
+            "Frustration / Anger": 0.9,
+            "Loneliness / Isolation": 0.8,
+            "Stress / Pressure": 0.9,
+            "Positive / Upbeat": 1.15,
+            "General Reflection": 1.0,
+        }
+        pace = pace_map.get(state, 1.0)
+
+        # Also adjust pace based on voice tone
+        tone_pace_adjust = {
+            "Agitated": -0.05,       # Slow down a bit more
+            "Low / Subdued": -0.1,    # Much slower
+            "Anxious / Restless": -0.05,
+            "Upbeat": 0.1,
+            "Expressive": 0.05,
+            "Steady": 0.0,
+        }
+        pace += tone_pace_adjust.get(voice_tone, 0.0)
+        pace = max(0.5, min(2.0, pace))  # Clamp
+
+        # Adaptive temperature for expressiveness
+        # Higher = more natural variation in prosody
+        temp_map = {
+            "Crisis / Immediate Risk": 0.3,   # Calm and steady
+            "Depression / Deep Sadness": 0.6,  # Warm and gentle
+            "Anxiety / Panic": 0.4,            # Reassuring
+            "Positive / Upbeat": 0.9,          # Expressive and lively
+            "Frustration / Anger": 0.5,        # Measured calm
+            "General Reflection": 0.7,         # Natural
+        }
+        temperature = temp_map.get(state, 0.7)
+
+        # Add natural pauses to text for better delivery
+        # Insert commas before conjunctions and after short phrases
+        import re
+        text = re.sub(r'\.\.\.', '... ', text)  # Ensure ellipsis spacing
+        text = re.sub(r'(\.\.\.) ', '... , ', text)  # Add micro-pause after ellipsis
+
         url = "https://api.sarvam.ai/text-to-speech"
         headers = { 
             "api-subscription-key": SARVAM_API_KEY, 
@@ -242,9 +291,11 @@ async def tts_sarvam(request: Request):
             "inputs": [text],
             "target_language_code": sarvam_lang,
             "speaker": "shruti",
-            "model": "bulbul:v3"
+            "model": "bulbul:v3",
+            "pace": round(pace, 2),
+            "speech_sample_rate": 22050,
         }
-        log_event(f"Sarvam Request: {text[:30]}... ({sarvam_lang})")
+        log_event(f"Sarvam Request: {text[:30]}... ({sarvam_lang}, pace={pace:.2f}, temp={temperature:.1f})")
 
         async with httpx.AsyncClient() as client_http:
             response = await client_http.post(url, json=payload, headers=headers, timeout=30.0)

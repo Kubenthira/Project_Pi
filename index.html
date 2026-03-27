@@ -673,33 +673,7 @@
         </div>
     </div>
 
-    <!-- Language Picker Overlay -->
-    <div class="lang-picker-overlay" id="lang-picker">
-        <div class="lang-picker-title">What language vibes with you? 🌍</div>
-        <div class="lang-picker-sub">I'll match your style — super casual, always.</div>
-        <div class="lang-picker-grid">
-            <div class="lang-btn" onclick="chooseLang('ta')">
-                <div class="lang-btn-emoji">🇮🇳</div>
-                <div class="lang-btn-name">Tamil</div>
-                <div class="lang-btn-style">Tanglish vibes</div>
-            </div>
-            <div class="lang-btn" onclick="chooseLang('te')">
-                <div class="lang-btn-emoji">🇮🇳</div>
-                <div class="lang-btn-name">Telugu</div>
-                <div class="lang-btn-style">Telugulish vibes</div>
-            </div>
-            <div class="lang-btn" onclick="chooseLang('hi')">
-                <div class="lang-btn-emoji">🇮🇳</div>
-                <div class="lang-btn-name">Hindi</div>
-                <div class="lang-btn-style">Hinglish vibes</div>
-            </div>
-            <div class="lang-btn" onclick="chooseLang('en')">
-                <div class="lang-btn-emoji">🌏</div>
-                <div class="lang-btn-name">English</div>
-                <div class="lang-btn-style">Casual English</div>
-            </div>
-        </div>
-    </div>
+    <!-- Language is auto-detected from user speech -->
     <div class="webcam-container" id="webcam-preview">
         <video id="webcam-video" autoplay playsinline muted></video>
         <div class="webcam-label">YOU (EMOTION: <span id="detected-emotion-text">READY</span>)</div>
@@ -927,12 +901,12 @@
                 if (/[\u0C00-\u0C7F]/.test(text)) return 'te';
                 // Hindi/Devanagari Unicode range
                 if (/[\u0900-\u097F]/.test(text)) return 'hi';
-                // Common Tamil transliterated words
-                const tamilWords = ['enna', 'illa', 'irukku', 'panna', 'sollu', 'vaanga', 'thala', 'machan', 'naan', 'enaku', 'romba', 'poda', 'da', 'di'];
-                // Common Telugu transliterated words
-                const teluguWords = ['enti', 'ledu', 'undi', 'cheyyi', 'raa', 'anna', 'akka', 'nenu', 'naaku', 'chala', 'em', 'ayindi'];
-                // Common Hindi transliterated words
-                const hindiWords = ['kya', 'hai', 'nahi', 'karo', 'yaar', 'bhai', 'main', 'mujhe', 'bahut', 'acha', 'theek'];
+                // Common Tamil transliterated words (expanded)
+                const tamilWords = ['enna', 'illa', 'irukku', 'panna', 'sollu', 'vaanga', 'thala', 'machan', 'naan', 'enaku', 'romba', 'poda', 'da', 'di', 'aama', 'theriyum', 'therila', 'seri', 'vaada', 'ponga', 'pannunga', 'thaan', 'achu', 'poi', 'vara', 'paaru', 'kaduppu', 'sogam', 'bayam', 'konjam'];
+                // Common Telugu transliterated words (expanded)
+                const teluguWords = ['enti', 'ledu', 'undi', 'cheyyi', 'raa', 'anna', 'akka', 'nenu', 'naaku', 'chala', 'em', 'ayindi', 'undhi', 'chestha', 'amma', 'avunu', 'kaadu', 'valla', 'mari', 'enduku', 'ela', 'bagundi', 'manchidi', 'parvaledu', 'ishtam', 'kopam'];
+                // Common Hindi transliterated words (expanded)
+                const hindiWords = ['kya', 'hai', 'nahi', 'karo', 'yaar', 'bhai', 'main', 'mujhe', 'bahut', 'acha', 'theek', 'haan', 'mera', 'tera', 'bilkul', 'samajh', 'baat', 'suno', 'dekho', 'chalo', 'matlab', 'abhi', 'toh', 'kyun'];
                 const lower = text.toLowerCase();
                 const words = lower.split(/\s+/);
                 let ta = 0, te = 0, hi = 0;
@@ -1128,13 +1102,26 @@
                 captionEl.innerText = `AI: ${aiText}`;
                 appendMessage('ai', aiText);
 
+                // Update language from LLM detection (most accurate)
+                const llmLang = chatData.detected_lang || window.lastDetectedLang || 'en';
+                window.lastDetectedLang = llmLang;
+                const langNames = { 'en': 'English', 'ta': 'Tamil', 'te': 'Telugu', 'hi': 'Hindi' };
+                const toneSub = document.getElementById('tile-voice-sub');
+                if (toneSub) toneSub.innerText = `lang: ${langNames[llmLang] || 'English'} (LLM)`;
+
                 // 2. Play AI Voice Response with Analysis
                 try {
                     console.log(`Requesting Sarvam AI Voice (Shruti) in ${aiLang}...`);
                     const sarvamRes = await fetch(`${BACKEND_URL}/tts_sarvam`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: aiText, lang: aiLang })
+                        body: JSON.stringify({ 
+                            text: aiText, 
+                            lang: aiLang,
+                            state: chatData.analysis ? chatData.analysis.state : 'General Reflection',
+                            voice_tone: window.lastVoiceTone || 'Steady',
+                            user_lang: llmLang
+                        })
                     });
                     const sarvamData = await sarvamRes.json();
 
