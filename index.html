@@ -260,25 +260,25 @@
             z-index: 200;
         }
 
-        /* Emotion Badge */
+        /* Emotion Badge - Top Right */
         #emotion-badge {
             position: fixed;
             top: 20px;
-            left: 200px; /* To the right of the webcam preview */
-            background: rgba(15, 23, 42, 0.4);
-            backdrop-filter: blur(8px);
+            right: 210px; /* Shifted left to avoid webcam overlap */
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             color: white;
             padding: 8px 16px;
-            border-radius: 20px;
+            border-radius: 25px;
             font-family: 'Outfit', sans-serif;
             font-size: 0.8rem;
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-            z-index: 100;
+            gap: 10px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            z-index: 1001;
             transition: all 0.3s ease;
         }
 
@@ -289,73 +289,73 @@
             border-radius: 50%;
             box-shadow: 0 0 10px #10b981;
         }
-        .webcam-container {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            width: 200px; /* Slightly larger */
-            z-index: 1000; /* Ensure it is on top */
-            background: rgba(15, 23, 42, 0.8); /* More opaque */
-            backdrop-filter: blur(12px);
-            border: 2px solid var(--primary); /* Glowing border */
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
-        }
 
-        /* Decision Trace Panel (Phase 3) */
-        #decision-trace {
+        /* ─── Distributed Engine Trace Tiles ─── */
+        .trace-tiles-container {
             position: fixed;
-            top: 190px;
+            top: 60px;
             left: 20px;
-            width: 260px;
             z-index: 1001;
-            padding: 15px;
-            background: rgba(15, 23, 42, 0.4);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            font-size: 0.75rem;
-            color: #94a3b8;
-            display: none; /* Shown after first interaction */
-            animation: fadeIn 0.5s ease;
-        }
-
-        #decision-trace h3 {
-            margin: 0 0 10px 0;
-            font-size: 0.8rem;
-            color: #e2e8f0;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .trace-item {
-            margin-bottom: 8px;
-            display: flex;
+            display: none;
             flex-direction: column;
-            gap: 2px;
+            gap: 8px;
+            width: 220px;
         }
 
-        .trace-label {
+        .trace-tile {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 12px 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .trace-tile.flash {
+            border-color: rgba(99, 102, 241, 0.6);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+        }
+
+        .trace-tile-label {
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
             color: #64748b;
-            font-size: 0.65rem;
+            margin-bottom: 4px;
         }
 
-        .trace-value {
-            color: #cbd5e1;
-            font-family: 'Courier New', Courier, monospace;
-        }
-
-        .trace-tag {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: rgba(99, 102, 241, 0.2);
-            color: #818cf8;
+        .trace-tile-value {
+            font-size: 1rem;
             font-weight: 600;
+            color: #e2e8f0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .trace-tile-value.risk-low { color: #10b981; }
+        .trace-tile-value.risk-mid { color: #f59e0b; }
+        .trace-tile-value.risk-high { color: #ef4444; }
+
+        .trace-tile-sub {
+            font-size: 0.6rem;
+            color: #475569;
+            margin-top: 2px;
+        }
+
+        .trace-tile-tag {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 6px;
+            background: rgba(99, 102, 241, 0.15);
+            color: #a5b4fc;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .trace-tile-tag.trend {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
         }
 
         /* Feedback Buttons */
@@ -391,12 +391,12 @@
         .webcam-container {
             position: fixed;
             top: 20px;
-            left: 20px;
-            width: 200px;
+            right: 20px;
+            width: 180px;
             border: 2px solid var(--primary);
-            border-radius: 12px;
+            border-radius: 14px;
             overflow: hidden;
-            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.3);
             z-index: 1000;
         }
 
@@ -439,13 +439,13 @@
             100% { transform: scale(1); }
         }
 
-        /* Chat Window UI */
+        /* Chat Window UI - Right side below webcam */
         #chat-container {
             position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 320px;
-            height: 400px;
+            top: 180px;
+            right: 20px;
+            width: 280px;
+            bottom: 20px;
             z-index: 300;
             display: flex;
             flex-direction: column;
@@ -551,9 +551,16 @@
         @media (max-width: 600px) {
             #chat-container {
                 width: calc(100% - 40px);
+                top: auto;
                 bottom: 20px;
                 right: 20px;
-                height: 350px;
+                height: 300px;
+            }
+            .trace-tiles-container {
+                display: none !important;
+            }
+            .webcam-container {
+                width: 120px;
             }
         }
     </style>
@@ -565,7 +572,7 @@
     </div>
     <div id="chat-container" class="glass-panel">
         <div id="chat-messages">
-            <div class="message ai">Hi! I'm your AI assistant. How can I help you today?</div>
+            <div class="message ai">Something brought you here... I'm listening, whenever you're ready. ✨</div>
         </div>
         <div id="chat-input-area">
             <button id="mic-btn" class="voice-btn" onclick="toggleVoice()">
@@ -583,12 +590,9 @@
         <!-- Language buttons removed for Auto-Detection -->
     </div>
     <div class="webcam-container" id="webcam-preview">
-        <video id="webcam-video" autoplay playsinline></video>
-        <div class="webcam-label">
-            AI SENSE: <span id="detected-emotion-text">IDLE</span> | 
-            <span id="analysis-state">STATE: -</span> | 
-            <span id="analysis-risk">RISK: -</span>
-        </div>
+        <video id="webcam-video" autoplay playsinline muted></video>
+        <div class="webcam-label">YOU (EMOTION: <span id="detected-emotion-text">READY</span>)</div>
+        <button onclick="startFaceDetection()" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;" title="Click to start camera if it's blank"></button>
     </div>
     <canvas id="capture-canvas" style="display:none;" width="320" height="240"></canvas>
 
@@ -596,28 +600,28 @@
         <div class="spinner"></div>
     </div>
 
-    <!-- Phase 3: Decision Trace Panel -->
-    <div id="decision-trace">
-        <h3><span style="color: var(--primary)">●</span> Engine Trace</h3>
-        <div class="trace-item">
-            <span class="trace-label">INPUT SIGNALS</span>
-            <span class="trace-value" id="trace-signals">Waiting...</span>
+    <!-- Distributed Engine Trace Tiles -->
+    <div class="trace-tiles-container" id="trace-tiles">
+        <div class="trace-tile" id="tile-signal">
+            <div class="trace-tile-label">📡 Input Signal</div>
+            <div class="trace-tile-value" id="tile-signal-value">Waiting...</div>
+            <div class="trace-tile-sub" id="tile-signal-sub">face: none | text: 0 chars</div>
         </div>
-        <div class="trace-item">
-            <span class="trace-label">RISK | CONFIDENCE</span>
-            <span class="trace-value" id="trace-metrics">0.0 | 0.0</span>
+        <div class="trace-tile" id="tile-risk">
+            <div class="trace-tile-label">⚡ Risk Score</div>
+            <div class="trace-tile-value risk-low" id="tile-risk-value">0.000</div>
+            <div class="trace-tile-sub" id="tile-confidence-sub">confidence: 0.50</div>
         </div>
-        <div class="trace-item">
-            <span class="trace-label">STATE CLASSIFICATION</span>
-            <span class="trace-value"><span class="trace-tag" id="trace-state">Neutral</span></span>
+        <div class="trace-tile" id="tile-state">
+            <div class="trace-tile-label">🧠 State Classification</div>
+            <div class="trace-tile-value">
+                <span class="trace-tile-tag" id="tile-state-value">—</span>
+            </div>
+            <div class="trace-tile-sub" id="tile-trend-sub" style="display:none">⚠ Persistent Pattern</div>
         </div>
-        <div class="trace-item">
-            <span class="trace-label">STRATEGY SELECTED</span>
-            <span class="trace-value" id="trace-strategy">Validation</span>
-        </div>
-        <div class="trace-item" id="trace-trend-area" style="display:none">
-            <span class="trace-label">TEMPORAL PATTERN</span>
-            <span class="trace-value" style="color: #fbbf24">⚠ Persistent Pattern Detected</span>
+        <div class="trace-tile" id="tile-strategy">
+            <div class="trace-tile-label">💊 Strategy</div>
+            <div class="trace-tile-value" id="tile-strategy-value">—</div>
         </div>
     </div>
     <div style="color: var(--text-dim); font-size: 0.9rem;">Loading Model...</div>
@@ -771,6 +775,12 @@
             recognition.lang = 'en-US';
 
             recognition.onstart = () => {
+                // Phase 4: Voice Interruption
+                if (window.currentAudio) {
+                    window.currentAudio.pause();
+                    window.currentAudio.currentTime = 0;
+                    console.log("Voice Interruption Triggered");
+                }
                 isRecording = true;
                 micBtn.classList.add('recording');
                 captionEl.innerText = "Listening...";
@@ -862,30 +872,41 @@
                 const aiText = chatData.response || "";
                 const aiLang = chatData.lang || 'en-IN';
                 
-                // Update Behavioral Analysis UI & Trace (Phase 3)
+                // ─── Update Distributed Engine Trace Tiles ───
                 if (chatData.analysis) {
-                    document.getElementById('decision-trace').style.display = 'block';
-                    
-                    // Update Overlays
-                    document.getElementById('analysis-state').innerText = `STATE: ${chatData.analysis.state.toUpperCase()}`;
-                    document.getElementById('analysis-risk').innerText = `RISK: ${chatData.analysis.risk_score.toFixed(1)}`;
-                    
-                    // Update Trace Panel
-                    const currentEmotion = window.currentDetections ? window.currentDetections.expressions.asSortedArray()[0].expression : "Text-only";
-                    document.getElementById('trace-signals').innerText = `Emotion: ${currentEmotion}`;
-                    document.getElementById('trace-metrics').innerText = `${chatData.analysis.risk_score.toFixed(2)} | ${chatData.analysis.confidence_score.toFixed(2)}`;
-                    document.getElementById('trace-state').innerText = chatData.analysis.state;
-                    document.getElementById('trace-strategy').innerText = chatData.analysis.selected_technique;
-                    
-                    // Trend Highlight
-                    const trendArea = document.getElementById('trace-trend-area');
-                    trendArea.style.display = chatData.analysis.is_trend ? 'block' : 'none';
+                    const tiles = document.getElementById('trace-tiles');
+                    tiles.style.display = 'flex';
 
-                    if (chatData.analysis.risk_score > 0.5) {
-                        document.getElementById('analysis-risk').style.color = '#ef4444';
-                    } else {
-                        document.getElementById('analysis-risk').style.color = 'inherit';
-                    }
+                    const a = chatData.analysis;
+                    const signals = a.input_signals || {};
+
+                    // Signal Tile
+                    const sigVal = document.getElementById('tile-signal-value');
+                    sigVal.innerText = (signals.face_emotion || 'none').toUpperCase();
+                    document.getElementById('tile-signal-sub').innerText =
+                        `face: ${signals.face_emotion || 'none'} (${(signals.face_confidence || 0).toFixed(1)}) | text: ${signals.text_length || 0} chars`;
+
+                    // Risk Tile
+                    const riskVal = document.getElementById('tile-risk-value');
+                    riskVal.innerText = a.risk_score.toFixed(3);
+                    riskVal.className = 'trace-tile-value ' +
+                        (a.risk_score >= 0.6 ? 'risk-high' : a.risk_score >= 0.3 ? 'risk-mid' : 'risk-low');
+                    document.getElementById('tile-confidence-sub').innerText = `confidence: ${a.confidence_score.toFixed(2)}`;
+
+                    // State Tile
+                    const stateTag = document.getElementById('tile-state-value');
+                    stateTag.innerText = a.state;
+                    stateTag.className = 'trace-tile-tag' + (a.is_trend ? ' trend' : '');
+                    document.getElementById('tile-trend-sub').style.display = a.is_trend ? 'block' : 'none';
+
+                    // Strategy Tile
+                    document.getElementById('tile-strategy-value').innerText = a.selected_technique;
+
+                    // Flash animation on update
+                    document.querySelectorAll('.trace-tile').forEach(tile => {
+                        tile.classList.add('flash');
+                        setTimeout(() => tile.classList.remove('flash'), 800);
+                    });
                 }
 
                 captionEl.innerText = `AI: ${aiText}`;
@@ -921,6 +942,7 @@
 
         function playAudio(audioSource) {
             const audio = new Audio(audioSource);
+            window.currentAudio = audio; // Store for interruption
             
             // Setup Audio Analysis for Lip-Sync
             if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -1180,22 +1202,33 @@
             const emotionText = document.getElementById('detected-emotion-text');
 
             try {
-                emotionText.innerText = "LOADING AI...";
+                // 1. Request Camera Permission IMMEDIATELY
+                console.log("Requesting Webcam Stream (Direct Prompt)...");
+                emotionText.innerText = "REQUESTING CAMERA...";
                 
-                // Load face-api models from CDN
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 320, height: 240, facingMode: "user" } 
+                });
+                
+                video.srcObject = stream;
+                await video.play();
+                console.log("Webcam Stream CONNECTED.");
+                
+                // Show the preview window
+                document.getElementById('webcam-preview').style.display = 'block';
+                emotionText.innerText = "LOADING AI MODELS...";
+
+                // 2. Load face-api models AFTER camera is ready
                 const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+                console.log("Loading AI Models from:", MODEL_URL);
+                
                 await Promise.all([
                     faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
                     faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)
                 ]);
 
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } });
-                video.srcObject = stream;
-                
-                // Show the preview window
-                document.getElementById('webcam-preview').style.display = 'block';
                 emotionText.innerText = "READY";
-                console.log("Webcam and Face-API started.");
+                console.log("Face-API models loaded successfully.");
 
                 // Detection Loop (every 200ms for high responsiveness)
                 setInterval(async () => {
