@@ -1,254 +1,400 @@
-🧠 MindfulAI — Product Requirements Document (PRD) for Web Application
-Voice-First, Behavior-Aware AI Companion for Mental Wellness — Web App Edition
-Right Technique · Right Time · Minimal Intervention
-This document is an updated version of the original MindfulAI PRD, changing the primary client from a Flutter mobile app to a web application while preserving the core product philosophy, decision loop, and AI stack.[1]
-________________________________________
-1. Executive Summary
-MindfulAI is a voice-first, behavior-aware AI companion built for the Indian mental wellness market, now delivered primarily as a responsive web application accessible from any modern browser on mobile or desktop.[1]
-Unlike generic chatbots that dump motivational quotes or long lectures, MindfulAI delivers one precise therapeutic micro-technique at exactly the right moment, grounded in CBT, mindfulness, and behavioral activation science.[1]
-Core Philosophy
-"Right technique, right time, minimal intervention" — not random tips, not stacked suggestions, but one targeted micro-intervention per turn.[1]
-What Makes It Different
-MindfulAI runs a transparent 12-step behavioral decision loop for every interaction: Signal Processing → Risk Scoring → Confidence Scoring → Clarification (if needed) → State Classification → Technique Selection → Safety Check → Delivery → Feedback → Learning.[1]
-The system is designed as a decision-driven behavioral intervention engine that can be explained, audited, and continuously improved, rather than a black-box chatbot.[1]
-________________________________________
-2. Problem Statement
-2.1 User-Side Crisis
-India faces a large unmet need in mental health support, with tens of millions requiring help and only a small fraction having access to professional services.[1]
-Therapy remains unaffordable for many students and early-career professionals, and stigma still discourages people from seeking formal treatment, despite their willingness to talk to their phones late at night when overwhelmed.[1]
-2.2 Why Existing Solutions Fail
-Key gaps in current tools include:
-	Generic chatbots that ignore interaction history and behavioral patterns, effectively starting from zero each time.[1]
-	Heavy, tasky apps that overload users with modules, tests, and long-form content, leading to churn within weeks.[1]
-	Clinical vs. motivational mismatch, where apps are either too sterile and hospital-like or too superficial and "think positive" in tone.[1]
-	No timing intelligence, since most solutions only respond when pinged and cannot optimize when to intervene.[1]
-	No decision transparency, with pure text generation and no visible risk/confidence assessment.[1]
-	Poor India language fit, especially for Hinglish, Tanglish, and Indian accents.[1]
-2.3 The Gap MindfulAI Fills
-The gap is not another chatbot; it is a decision-driven behavioral intervention system that knows when to speak, what to say, and how to learn from each interaction.[1]
-The web application form factor removes installation friction and makes it easier for users to try MindfulAI instantly on mobile browsers and desktops.[1]
-________________________________________
-3. Market Analysis
-3.1 Market Size & Growth
-The Indian mental health app market and global mental wellness space are growing rapidly, with mental health/emotional support identified as one of the fastest-growing application segments for voice-based AI companions.[1]
-MindfulAI is positioned at the intersection of mental health apps, voice-based AI companions, and behavioral health SaaS, with an India-first focus.[1]
-3.2 Target Segment
-Primary persona: "Stressed Aarav" — 18–35-year-old students and early-career professionals in Tier 1–3 Indian cities, comfortable with smartphones, voice notes, and code-mixed speech like Hinglish or Tanglish.[1]
-Pain points include late-night overthinking, work stress, exam pressure, and relationship struggles, often expressed in informal, mixed-language speech rather than formal English.[1]
-3.3 Target Use Cases
-Typical scenarios:
-	Late-night overthinking (11 PM–2 AM) → CBT reframing.[1]
-	Post-work burnout → grounding or micro-reset routines.[1]
-	Pre-exam panic → brief breathing exercises.[1]
-	Relationship conflict → validation plus light guidance.[1]
-	Monday morning dread → behavioral activation.[1]
-3.4 Market Entry Strategy
-The web application model enables frictionless trials via shareable links and QR codes, complementing campus and community-based acquisition strategies already planned for MindfulAI.[1]
-________________________________________
-4. Solution Overview
-4.1 What MindfulAI Is
-MindfulAI is a decision-driven behavioral intervention system, delivered as a responsive web app that:
-	Listens to voice in real time (Indian languages + code-mixed speech).
-	Extracts sentiment, emotion, and distress phrases.
-	Computes a Risk Score and Confidence Score between 0 and 1.
-	Optionally asks a clarification question when confidence is low.
-	Classifies the user's current mental state.
-	Selects one primary therapeutic technique.
-	Generates a short, safe, validating response.
-	Delivers the response as voice plus synced text in the browser.
-	Captures explicit and implicit feedback.
-	Learns which techniques work best for that user over time.[1]
-4.2 What MindfulAI Is Not
-MindfulAI is therapy-informed, not therapy-replacing: it does not diagnose, prescribe, or claim to replace human therapists, and it always escalates crisis situations to verified helplines rather than attempting to handle them autonomously.[1]
-Raw audio is not stored; only processed text and derived signals are retained, with strong privacy controls and the ability for users to delete their data.[1]
-4.3 Core Design Rules
-Core design principles include:
-	One-Technique Rule: at most one main technique per interaction turn.
-	Validation-First Rule: always acknowledge the user's emotion before suggesting anything.
-	Timing Over Intelligence: simple and timely beats complex and late.
-	Minimalism Rule: short, concrete responses and 1–3 minute exercises.
-	Adaptive Behavior: per-user technique preferences evolve from feedback, without long preference surveys.[1]
-________________________________________
-5. Detailed Product Behavior — The 12-Step Loop
-MindfulAI’s heart is a 12-step behavioral decision loop that processes each interaction from input to learning.[1]
-The loop encompasses input collection, signal extraction, risk and confidence scoring, optional clarification, state classification, technique selection, intervention generation, safety checking, delivery, feedback, and long-term adaptation.[1]
-Key components:
-	Input Collection: voice (mandatory), optional text, and recent history.[1]
-	Signal Processing: sentiment, emotion indicators, and distress keywords.[1]
-	Risk Scoring: computes risk_score ∈ 0,1 and triggers crisis escalation when above threshold.[1]
-	Confidence Scoring: evaluates statement clarity and pattern consistency to decide if clarification is needed.[1]
-	Clarification Engine: asks a single empathetic clarifying question when confidence is low.[1]
-	State Classification: categorizes into states like overthinking, anxiety, fatigue, low motivation, negative self-talk, or emotional distress.[1]
-	Technique Selection: maps states to primary and fallback techniques (e.g., CBT reframing, breathing, grounding, behavioral activation, validation).[1]
-	Intervention Generation: follows a three-part structure — validation, technique, and follow-up.[1]
-	Trust/Safety Check: a dedicated safety pass ensures no medical claims, unsafe instructions, or invalidating tone.[1]
-	Response Delivery: voice output plus text transcript.[1]
-	Feedback Loop: explicit yes/no feedback and implicit signals like engagement and sentiment shift.[1]
-	Learning & Adaptation: updates technique weights and thresholds, driving personalization.[1]
-________________________________________
-6. Technology Stack — Web Application First
-6.1 Overview
-MindfulAI uses a modern web-based stack: a Next.js web client, a FastAPI backend orchestrating a Sarvam AI stack, and Firebase/Supabase for data and auth.[1]
-The shift from Flutter to web focuses on rapid access, easier distribution, and shared infrastructure between the marketing site and the app shell.[1]
-6.2 Client — Web Application (Next.js)
-Component	Technology	Justification
-Framework	Next.js (React)	Single codebase for desktop and mobile web; SSR for SEO; excellent performance.
-Rendering	Next.js App Router + SSR/ISR	SEO-friendly for public pages, fast navigation for app flows.
-UI Library	Tailwind CSS + Headless UI	Rapid UI development; consistent design system; responsive layout.
-Audio Capture	Web Audio API + getUserMedia	Low-latency mic access directly in the browser; no native app install required.
-Audio Streaming	WebSocket (Browser WebSocket API)	Real-time audio chunk streaming to backend orchestrator.
-State Management	React Query / Zustand	Predictable state handling for conversation flow and cached data.
-Routing	Next.js App Router	Clean separation between marketing pages, auth, and app area (/app).
-Auth Integration	Firebase Auth JS SDK	Phone OTP, email, Google login in-browser; minimal friction.
-Offline Support	Service Worker / IndexedDB	Cache recent sessions and preferences; tolerate flaky mobile data.
+# 🧠 Theraπ (Project Pi) — Product Requirements Document
 
-6.3 Client — Marketing Website (Next.js)
-The marketing website shares the same Next.js codebase, reusing components and styling for consistency.[1]
-It uses Tailwind CSS and MDX for content, and is hosted on Vercel for zero-config deployment, previews, and global CDN caching.[1]
-6.4 Backend — API & Orchestration
-The backend continues to use Python FastAPI as the primary framework, with WebSocket support for real-time audio streaming and optional task queues (Celery + Redis) for background jobs.[1]
-Deployment targets include Google Cloud Run or similar serverless container platforms, enabling auto-scaling and pay-per-use economics.[1]
-6.5 AI & APIs — Sarvam AI Stack
-The AI layer integrates:
-	Saaras STT for streaming speech-to-text in Indian languages and code-mixed speech.
-	Sarvam Chat LLM for signal extraction, classification, technique selection, and response templating.
-	Bulbul TTS for high-quality Indian voices in Hindi, Tamil, and Indian-accent English.[1]
-These India-first models provide superior UX compared to generic global STT/TTS for the target demographic.[1]
-6.6 Data & Storage
-Core components include:
-	Primary Database: Firestore or Supabase for real-time sync and simple integration with the web client.
-	Authentication: Firebase Auth for phone, email, and social logins.
-	Analytics: Firebase Analytics with custom events to track engagement and technique effectiveness.
-	File Storage: optional Firebase Storage for future user-uploaded context.[1]
-6.7 Development Tooling
-Development may use agentic coding tools to scaffold backend, infrastructure, and UI code, plus test synchronization and pair-programming workflows.[1]
-________________________________________
-7. System Architecture — Web Client
-7.1 High-Level Architecture
-The high-level architecture remains: Web Client → API Gateway → Conversation Orchestrator → Sarvam Services → Database, with the client now being a browser-based app instead of a Flutter mobile client.[1]
-The architecture supports streaming audio, live captions, decision logic, and feedback-driven learning.
-7.2 Logical Components — Detailed
-🌐 Web Client (Browser App)
-	Audio Capture: uses Web Audio API and getUserMedia to capture mic audio, sending encoded chunks over WebSocket.
-	Live Captions: receives partial/final STT transcripts and updates the UI in real time.
-	Conversation UI: chat-style timeline showing user utterances (text transcripts) and AI responses (text + play/pause audio controls).
-	Feedback Controls: inline "Did that help?" yes/no buttons, emoji reactions, and optional text feedback.
-	Insights View: weekly summaries of mood trends, techniques, and helpfulness scores.
-	Responsive Layout: mobile-first design for smooth experience on Android and iOS browsers.
-🚪 API Gateway / Orchestrator
-The gateway handles auth verification, rate limiting, and routing of WebSocket streams and HTTP requests to the conversation orchestrator and behavioral engine.[1]
-🎛️ Conversation Orchestrator
-Implements the 12-step decision loop, coordinating STT, LLM processing, risk/confidence logic, technique selection, safety checks, TTS, and feedback handling.[1]
-📊 Behavioral Engine
-Computes behavioral patterns such as late-night usage, withdrawal, and repeated negativity, and generates simple insights for users.[1]
-💊 Intervention Engine
-Manages the technique library, mapping logic, response templates, and effectiveness scoring per user.[1]
-7.3 Example Request Flow (Web)
-The sequence is conceptually identical to the mobile version, with the client now labeled "🌐 User (Web App – Browser)":
-	User → Gateway: audio stream via WebSocket.
-	Gateway → Orchestrator: forward audio chunks.
-	Orchestrator → Saaras: streaming STT request.
-	Saaras → Orchestrator: transcripts.
-	Orchestrator → Web Client: live captions.
-	Orchestrator → LLM: signals and classification.
-	LLM → Orchestrator: state, risk, confidence, technique recommendations.
-	Orchestrator → LLM: intervention generation.
-	LLM → Orchestrator: validated response text.
-	Orchestrator → Bulbul: TTS request.
-	Bulbul → Orchestrator: audio buffer.
-	Orchestrator → Web Client: audio + text response.
-	User → Gateway: explicit feedback.
-	Gateway/Orchestrator → DB: persist session, feedback, and updated scores.[1]
-________________________________________
-8. Data Model & Schema
-The data model remains centered around users, sessions, messages, interventions, behavioral patterns, and state snapshots, with fields such as technique weights, risk/confidence scores, and derived insights.[1]
-All collections are stored in Firestore or Supabase with strict access control and encryption in transit and at rest.[1]
-________________________________________
-9. API Contract & Integration Points
-The HTTP and WebSocket API surface remains:
-	Session Management: start, end, and history endpoints.
-	Real-time Conversation (WebSocket): client sends audio chunks, server streams transcripts and response messages.
-	Feedback: explicit feedback submission endpoint.
-	Insights: daily and weekly insight endpoints.[1]
-Sarvam integration points map cleanly onto backend services for STT, LLM, and TTS.[1]
-________________________________________
-10. Security, Privacy & Compliance
-The privacy architecture enforces:
-	Encryption at rest and in transit.
-	Access control so users can only access their own data.
-	No storage of raw audio; only transcripts and derived metadata.
-	GDPR/DPDPA-style rights including account and data deletion on request.[1]
-Safety protocols define clear responses for high risk scores, self-harm keywords, medical advice requests, repeated high-risk sessions, and data deletion requests.[1]
-________________________________________
-11. Competitive Analysis & USPs
-MindfulAI’s competitive differentiation remains:
-	Voice-first, India-language-first UX (Hinglish, Tanglish, Hindi, Tamil).
-	Transparent decision loop with explicit risk and confidence scoring.
-	Timing intelligence and behavioral patterns.
-	Minimalist, one-technique-per-turn interventions.
-	Strong safety and trust layer.
-	Web-based delivery, reducing install friction and broadening reach.[1]
-________________________________________
-12. Go-to-Market Strategy — Web Focus
-The go-to-market plan now emphasizes:
-	Zero-friction access via a public web URL and PWA-style experience.
-	Campus and community partnerships where QR codes and short links drive users to the web app.
-	Social content (reels, posts) linking directly to the web app.
-	Product Hunt and similar launches where browser-based access is an advantage.[1]
-________________________________________
-13. Phased Roadmap (Platform-Specific)
-Phase 1 (Months 1–3) — MVP Web App
-	Responsive web app (Next.js) with browser mic input.
-	FastAPI backend with WebSocket support.
-	Sarvam STT integration (Hinglish first).
-	Core 12-step loop (at least input → delivery).
-	Basic state classification (initial set of states).
-	Three technique types (breathing, CBT reframing, validation).
-	Sarvam TTS output (Hindi voice).
-	Firebase Auth (phone OTP).
-	Firestore data storage.
-	Basic explicit feedback collection.
-Phase 2 (Months 4–6) — Enhanced Experience
-	Full 12-step loop with learning and adaptation.
-	All six state classifications and five technique types.
-	Behavioral engine for pattern detection.
-	Weekly insights web dashboard.
-	Implicit feedback tracking.
-	Tamil and Indian English support.
-	PWA optimization (home-screen install, offline shell).
-	Public production web launch.
-Phase 3+ — Scale and Optional Native Wrappers
-	Optional native wrappers (Android/iOS via Capacitor or similar) that host the web app for users who prefer store installs.
-	Campus dashboards for partners.
-	Advanced personalization, voice tone analysis, proactive interventions, and A/B testing.
-	Premium subscription tier and B2B offerings.[1]
-________________________________________
-14. Risk Assessment & Mitigation (Web-Specific Considerations)
-Key risks include:
-	Browser permission friction for mic access → mitigated by clear onboarding and UX copy.
-	Network reliability for real-time streaming → mitigated by graceful degradation and reconnect logic.
-	Device variability across mobile browsers → mitigated by responsive design and cross-browser testing.
-	Privacy concerns in shared devices/browsers → mitigated by explicit logout, minimal local storage, and clear privacy education.[1]
-________________________________________
-15. Success Metrics & KPIs
-Success metrics remain centered on:
-	Weekly active users.
-	Session frequency per user.
-	Average session duration.
-	Sentiment shift within sessions.
-	Technique effectiveness scores.
-	Retention and habit formation indicators.[1]
-________________________________________
-16. Team Structure & Roles (Updated Client Role)
-Key roles include:
-	Product Lead — owns PRD, roadmap, and user research.
-	Web Frontend Developer (React/Next.js) — builds the web app UI, audio capture, and WebSocket integration.
-	Backend Engineer (FastAPI) — implements APIs, orchestrator, and Sarvam integration.
-	AI/ML Engineer — designs signal-processing pipeline, classification, and personalization.
-	Design — leads UX, UI, and conversation design.
-	QA/Safety — covers quality, regression, and safety testing with mental health-informed scenarios.[1]
-________________________________________
-17. Summary
-This PRD repositions MindfulAI as a web-first, voice-first AI companion while preserving the original behavioral architecture and India-focused AI stack.[1]
-The web application approach optimizes for accessibility, rapid experimentation, and broad reach across devices, aligning with hackathon timelines and early-stage product validation needs.[1]
-________________________________________
+**Voice-First, Behavior-Aware AI Companion for Mental Wellness**
+*Right Technique · Right Time · Minimal Intervention*
+
+---
+
+## 1. Executive Summary
+
+Theraπ is a **voice-first, behavior-aware AI companion** for mental wellness, delivered as a web application featuring a **3D VRM avatar** with real-time emotion-driven facial expressions, a **heuristic behavioral scoring engine**, and **adaptive multilingual responses**.
+
+Unlike generic chatbots, Theraπ runs a transparent behavioral decision loop for every interaction — processing multimodal signals (text + face + voice tone), computing risk and confidence scores via a **non-LLM heuristic engine**, classifying the user's mental state, selecting one targeted therapeutic technique, and generating a short, empathetic response in the user's preferred language style.
+
+### Core Philosophy
+
+> *"Right technique, right time, minimal intervention"* — not random tips, not stacked suggestions, but **one targeted micro-intervention per turn**.
+
+### What Makes It Different
+
+| Feature | Theraπ | Generic Chatbots |
+|---|---|---|
+| Decision-making | Heuristic engine (non-LLM) | LLM decides everything |
+| Multimodal input | Face + Text + Voice Tone | Text only |
+| Language | Adaptive Tanglish/Telugulish/Hinglish | English only |
+| Persona | Warm Guide (observation-first) | Generic "Hi, how can I help?" |
+| Transparency | Real-time engine trace tiles | Black box |
+| Avatar | 3D VRM with emotion-synced expressions | Text or 2D |
+
+---
+
+## 2. Problem Statement
+
+### 2.1 User-Side Crisis
+- India has a massive unmet mental health need (tens of millions) with minimal professional access
+- Therapy is unaffordable for most students and early-career professionals
+- Stigma discourages formal help-seeking, but users are willing to talk to their phones late at night
+
+### 2.2 Why Existing Solutions Fail
+- **Generic chatbots** ignore behavioral patterns and start from zero each time
+- **Heavy apps** overload users with modules, tests, and long-form content → churn within weeks
+- **No timing intelligence** — most only respond when pinged
+- **No decision transparency** — pure text generation with no visible risk/confidence assessment
+- **Poor India language fit** — fail with Hinglish, Tanglish, and Indian accents
+
+### 2.3 The Gap Theraπ Fills
+A **decision-driven behavioral intervention system** that knows when to speak, what to say, and adapts to the user's language, tone, and emotional state in real time.
+
+---
+
+## 3. Target Audience
+
+**Primary Persona: "Stressed Aarav"**
+- 18–35 year-old students and early-career professionals
+- Tier 1–3 Indian cities
+- Comfortable with voice notes and code-mixed speech (Hinglish/Tanglish)
+- Pain points: late-night overthinking, work stress, exam pressure, relationship struggles
+
+**Target Use Cases:**
+| Scenario | Technique |
+|---|---|
+| Late-night overthinking (11 PM–2 AM) | CBT Reframing |
+| Post-work burnout | Grounding (5-4-3-2-1) |
+| Pre-exam panic | Box Breathing (4-7-8) |
+| Relationship conflict | Empathetic Validation |
+| Monday morning dread | Behavioral Activation |
+| Loneliness/isolation | Cognitive Defusion |
+| Anger/frustration | Progressive Muscle Relaxation |
+
+---
+
+## 4. Current Architecture (As Built)
+
+### 4.1 Tech Stack
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| **Frontend** | Vanilla HTML/CSS/JS | Single-page web app |
+| **3D Avatar** | Three.js + VRM Loader | Emotion-synced 3D character |
+| **Face Detection** | face-api.js (TinyFaceDetector) | Real-time webcam emotion detection |
+| **Speech-to-Text** | Web Speech API (SpeechRecognition) | Browser-native voice input |
+| **Backend** | Python FastAPI + Uvicorn | API orchestration |
+| **Scoring Engine** | Custom Python heuristics (`scoring.py`) | Risk/State/Technique — NO LLM |
+| **LLM (Response Only)** | Groq API (LLaMA 3.1 8B Instant) | Empathetic response generation |
+| **Text-to-Speech** | Sarvam AI (Bulbul TTS) | Indian-voice audio output |
+| **Hosting** | Vercel (Frontend) + Local/Cloud (Backend) | Deployment |
+
+### 4.2 File Structure
+
+```
+Project_Pi/
+├── index.html          # Full frontend (3D avatar, chat, trace tiles, webcam)
+├── api.py              # FastAPI backend (orchestration, LLM proxy, TTS proxy)
+├── scoring.py          # Heuristic behavioral engine (risk, state, technique)
+├── requirements.txt    # Python dependencies
+├── .env                # API keys (GROQ_API_KEY, SARVAM_API_KEY)
+├── prd.md              # This document
+└── .venv/              # Python virtual environment
+```
+
+---
+
+## 5. Behavioral Decision Loop (As Implemented)
+
+### 5.1 Overview
+
+Every user interaction triggers a **6-step heuristic decision loop** — entirely in `scoring.py`, with **zero LLM involvement** for classification.
+
+```
+User Input (Text + Face + Voice Tone)
+        ↓
+┌─────────────────────────────────┐
+│ Step 1: Signal Processing       │  Extract text keywords + face emotion + voice tone
+│ Step 2: Risk Scoring            │  Weighted lexicon + sigmoid normalization
+│ Step 3: Confidence Scoring      │  Multimodal alignment (text ↔ face)
+│ Step 4: State Classification    │  Priority-ordered rules (9 states)
+│ Step 5: Technique Selection     │  State → Technique mapping
+│ Step 6: Trend Detection         │  Session history pattern analysis
+└─────────────────────────────────┘
+        ↓
+Analysis Result (risk_score, confidence_score, state, technique, is_trend)
+        ↓
+LLM generates empathetic response GUIDED BY the analysis
+        ↓
+Sarvam TTS speaks the response
+```
+
+### 5.2 Scoring Engine Details (`scoring.py`)
+
+#### Weighted Distress Lexicon
+- **40+ keywords** with clinical severity weights (0.05–0.9)
+- Categories: Crisis (kill, suicide, end it → 0.7–0.9), Anxiety (anxious, panic → 0.4–0.5), Depression (hopeless, worthless → 0.5–0.6), Stress (stressed, overwhelmed → 0.3–0.4), Mild distress (tired, bored → 0.05–0.15)
+
+#### Positive Signal Lexicon
+- **18 keywords** that actively reduce risk score (happy, grateful, peaceful, etc.)
+
+#### Risk Score Calculation
+```
+raw_score = Σ(keyword_weight) - Σ(positive_weight × 0.3)
+risk_score = sigmoid(raw_score) ∈ [0.0, 1.0]
+```
+
+#### Multimodal Confidence Score
+- Measures **alignment** between text sentiment and face emotion
+- High confidence when text and face agree (e.g., "I'm sad" + sad face = 0.95)
+- Low confidence when they conflict (e.g., "I'm fine" + sad face = 0.65)
+
+#### State Classification (9 States, Priority-Ordered)
+
+| Priority | State | Primary Trigger |
+|---|---|---|
+| 1 | Crisis / Immediate Risk | Crisis keywords (kill, suicide) |
+| 2 | Anxiety / Panic | Anxiety keywords + fearful face |
+| 3 | Depression / Deep Sadness | Depression keywords + sad face |
+| 4 | Fatigue / Burnout | Exhaustion keywords |
+| 5 | Overthinking / Rumination | Overthinking patterns |
+| 6 | Frustration / Anger | Anger keywords + angry face |
+| 7 | Loneliness / Isolation | Loneliness keywords |
+| 8 | Stress / Pressure | Stress keywords |
+| 9 | Positive / Upbeat | Happy/grateful signals |
+| Default | General Reflection | No specific signals |
+
+#### Technique Mapping
+
+| State | Primary Technique |
+|---|---|
+| Crisis | Safety Protocol → Helpline Escalation |
+| Anxiety / Panic | Box Breathing (4-7-8 Technique) |
+| Depression | Behavioral Activation + Gratitude Journaling |
+| Fatigue / Burnout | Micro-Rest (2-Min Body Scan) |
+| Overthinking | CBT Thought Record (Catch → Check → Change) |
+| Frustration / Anger | Progressive Muscle Relaxation |
+| Loneliness | Cognitive Defusion + Social Reconnection |
+| Stress / Pressure | Grounding (5-4-3-2-1 Technique) |
+| Positive | Gratitude Amplification |
+| General | Empathetic Validation |
+
+---
+
+## 6. AI Persona — Theraπ
+
+### 6.1 Personality Profile
+
+Theraπ is a **Warm Guide** — not a doctor, not a generic chatbot. A caring friend who understands mental wellness techniques.
+
+**Key Traits:**
+- **Observation-first:** Never starts with "Hi/Hello." Jumps straight into what the user seems to be feeling.
+- **Concise:** 1–3 sentences max. This is a conversation, not a lecture.
+- **Proactive:** Actively guides users through techniques instead of just mentioning them.
+- **Interruptible:** Keeps responses short so the user can jump in anytime.
+
+### 6.2 Adaptive Language
+
+The AI dynamically adapts its language based on the user's detected language:
+
+| User Language | AI Response Style | Example |
+|---|---|---|
+| Tamil | Tanglish (English + Tamil) | "Arey enna achu da? Let's try something together..." |
+| Telugu | Telugulish (English + Telugu) | "Em ayindi ra? Chala tough ga undi, I understand..." |
+| Hindi | Hinglish (English + Hindi) | "Kya hua yaar? Bahut tough hai, let's breathe..." |
+| English | Warm casual English | "That sounds heavy... Parvaledu, we got this." |
+
+**STRICT RULE:** Never pure Tamil/Telugu/Hindi paragraphs. Always mixed naturally with English.
+
+### 6.3 Adaptive Tone
+
+Based on the detected voice tone, the AI adapts its emotional delivery:
+
+| Detected Tone | AI Behavior |
+|---|---|
+| Agitated | Extra calm and grounding — be the anchor |
+| Low / Subdued | Extra warm and gentle — validate the pain |
+| Anxious / Restless | Reassuring and steady — guide them to slow down |
+| Upbeat | Match positive energy — celebrate with them |
+| Expressive | Engage warmly — mirror their enthusiasm |
+| Steady | Conversational and natural |
+
+### 6.4 Response Pattern
+
+```
+1. Name the state: "Sounds like you're carrying a lot of frustration, no?"
+2. Validate: "That's completely understandable, yaar..."
+3. Guide through technique: "Let's breathe together — inhale 4 seconds... hold 4... exhale 4... ready?"
+```
+
+---
+
+## 7. Frontend UI — Distributed Engine Trace
+
+### 7.1 Layout
+
+```
+┌──────────────────────────────────────────────────────┐
+│  [Engine Trace Tiles]          [3D Avatar]    [Webcam]│
+│  📡 Signal: HAPPY (0.87)       ┌─────────┐   ┌─────┐│
+│  ⚡ Risk: 0.119 (green)        │         │   │ YOU ││
+│  🧠 State: Positive/Upbeat    │  Theraπ │   │     ││
+│  💊 Strategy: Gratitude Amp    │  (VRM)  │   └─────┘│
+│  🎙️ Voice: Steady (English)    │         │   [Chat] │
+│                                └─────────┘   │     ││
+│                                              │     ││
+│                                              └─────┘│
+└──────────────────────────────────────────────────────┘
+```
+
+### 7.2 Trace Tiles (Left Side)
+
+| Tile | Content | Update Frequency |
+|---|---|---|
+| 📡 Input Signal | Face emotion + confidence | Real-time (200ms) |
+| ⚡ Risk Score | 0.000–1.000, color-coded | Per chat response |
+| 🧠 State Classification | Detected mental state tag | Per chat response |
+| 💊 Strategy | Selected therapeutic technique | Per chat response |
+| 🎙️ Voice Tone | Detected voice tone + language | Per voice input |
+
+### 7.3 Visual Risk Feedback
+
+The chat container dynamically glows based on the current risk level:
+- 🟢 **Green glow** (risk < 0.3) — Safe
+- 🟡 **Amber glow** (risk 0.3–0.6) — Alert
+- 🔴 **Red pulse** (risk > 0.6) — High risk, pulsing animation
+
+### 7.4 3D Avatar
+
+- **Model:** VRM format, loaded via `@pixiv/three-vrm`
+- **Expressions:** Emotion-synced (happy, sad, angry, surprised, neutral) via VRM expression system
+- **Lip Sync:** Audio-driven mouth movement during TTS playback
+- **Framing:** Shoulder-up, centered in the viewport
+
+---
+
+## 8. Multimodal Input Pipeline
+
+### 8.1 Signal Sources
+
+```
+┌─────────────┐    ┌──────────────┐    ┌───────────────┐
+│  Webcam      │    │  Microphone   │    │  Text Input   │
+│  (face-api)  │    │  (Web Speech) │    │  (keyboard)   │
+└──────┬──────┘    └──────┬───────┘    └──────┬────────┘
+       │                  │                    │
+       ▼                  ▼                    ▼
+  Face Emotion      Voice Tone +           Raw Text
+  + Confidence      Language Detection
+       │                  │                    │
+       └──────────────────┼────────────────────┘
+                          ▼
+              ┌─────────────────────┐
+              │   scoring.py        │
+              │   (Heuristic Engine)│
+              └──────────┬──────────┘
+                         ▼
+              ┌─────────────────────┐
+              │   Groq LLM          │
+              │   (Response ONLY)   │
+              └──────────┬──────────┘
+                         ▼
+              ┌─────────────────────┐
+              │   Sarvam TTS        │
+              │   (Voice Output)    │
+              └─────────────────────┘
+```
+
+### 8.2 Data Sent to Backend (`/chat` endpoint)
+
+```json
+{
+  "text": "I'm feeling really stressed about exams",
+  "emotion_data": {
+    "emotion": "fearful",
+    "score": 0.82
+  },
+  "voice_tone": "Anxious / Restless",
+  "detected_lang": "en"
+}
+```
+
+### 8.3 Backend Response
+
+```json
+{
+  "response": "That exam pressure is real, yaar... Let's try something quick — breathe in for 4 seconds... hold... now exhale slowly. Ready?",
+  "lang": "en-IN",
+  "analysis": {
+    "risk_score": 0.47,
+    "confidence_score": 0.97,
+    "state": "Anxiety / Panic",
+    "selected_technique": "Box Breathing (4-7-8 Technique)",
+    "is_trend": false,
+    "voice_tone": "Anxious / Restless",
+    "user_lang": "en",
+    "input_signals": {
+      "face_emotion": "fearful",
+      "face_confidence": 0.82,
+      "text_length": 43,
+      "session_depth": 0
+    },
+    "engine_version": "2.0-heuristic"
+  }
+}
+```
+
+---
+
+## 9. Safety & Ethics
+
+### 9.1 Safety Circuit Breaker
+- Risk score ≥ 0.8 triggers an **immediate safety response** with helpline numbers
+- No LLM involvement in safety decisions — purely heuristic
+
+### 9.2 What Theraπ Is NOT
+- ❌ Not a replacement for therapy
+- ❌ Does not diagnose or prescribe
+- ❌ Does not store raw audio
+- ❌ Does not make medical claims
+
+### 9.3 Crisis Escalation
+When crisis keywords are detected (suicide, self-harm, etc.), the system immediately provides:
+- National helpline numbers (iCall, Vandrevala Foundation)
+- Clear messaging that professional help is available
+- No further AI interaction until user explicitly continues
+
+---
+
+## 10. Dependencies & Environment
+
+### 10.1 Python Dependencies (`requirements.txt`)
+```
+fastapi
+uvicorn
+httpx
+python-dotenv
+groq
+```
+
+### 10.2 Environment Variables (`.env`)
+```
+GROQ_API_KEY=<your-groq-api-key>
+SARVAM_API_KEY=<your-sarvam-api-key>
+```
+
+### 10.3 Running Locally
+```bash
+# Backend (port 8016)
+python api.py
+
+# Frontend (port 8001)
+python -m http.server 8001
+```
+
+---
+
+## 11. Design Principles
+
+1. **Non-LLM Decisions:** The LLM generates responses only — all risk scoring, state classification, and technique selection is done by the heuristic engine.
+2. **Transparency:** Every decision the engine makes is visible to the user via the trace tiles.
+3. **One-Technique Rule:** At most one therapeutic technique per interaction turn.
+4. **Validation-First:** Always acknowledge the user's emotion before suggesting anything.
+5. **Minimalism:** Short, concrete responses. 1–3 sentences max.
+6. **Adaptive Behavior:** Language and tone adapt to the user's input without configuration.
+7. **Safety-First:** Crisis detection is heuristic-based and cannot be overridden by the LLM.

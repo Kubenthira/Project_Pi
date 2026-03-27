@@ -579,6 +579,78 @@
                 width: 120px;
             }
         }
+
+        /* ─── Language Picker Overlay ─── */
+        .lang-picker-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(2, 6, 23, 0.92);
+            backdrop-filter: blur(24px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .lang-picker-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(1.05);
+        }
+        .lang-picker-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            text-align: center;
+            margin-bottom: 4px;
+        }
+        .lang-picker-sub {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.8rem;
+            color: #64748b;
+            text-align: center;
+            margin-top: -16px;
+        }
+        .lang-picker-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            max-width: 340px;
+        }
+        .lang-btn {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 20px 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        .lang-btn:hover {
+            border-color: rgba(99, 102, 241, 0.5);
+            background: rgba(99, 102, 241, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15);
+        }
+        .lang-btn-emoji {
+            font-size: 1.8rem;
+            margin-bottom: 6px;
+        }
+        .lang-btn-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+        .lang-btn-style {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.6rem;
+            color: #64748b;
+            margin-top: 2px;
+        }
     </style>
 </head>
 <body>
@@ -601,9 +673,32 @@
         </div>
     </div>
 
-    <!-- UI Overlay for Language Selection -->
-    <div class="ui-overlay-languages">
-        <!-- Language buttons removed for Auto-Detection -->
+    <!-- Language Picker Overlay -->
+    <div class="lang-picker-overlay" id="lang-picker">
+        <div class="lang-picker-title">What language vibes with you? 🌍</div>
+        <div class="lang-picker-sub">I'll match your style — super casual, always.</div>
+        <div class="lang-picker-grid">
+            <div class="lang-btn" onclick="chooseLang('ta')">
+                <div class="lang-btn-emoji">🇮🇳</div>
+                <div class="lang-btn-name">Tamil</div>
+                <div class="lang-btn-style">Tanglish vibes</div>
+            </div>
+            <div class="lang-btn" onclick="chooseLang('te')">
+                <div class="lang-btn-emoji">🇮🇳</div>
+                <div class="lang-btn-name">Telugu</div>
+                <div class="lang-btn-style">Telugulish vibes</div>
+            </div>
+            <div class="lang-btn" onclick="chooseLang('hi')">
+                <div class="lang-btn-emoji">🇮🇳</div>
+                <div class="lang-btn-name">Hindi</div>
+                <div class="lang-btn-style">Hinglish vibes</div>
+            </div>
+            <div class="lang-btn" onclick="chooseLang('en')">
+                <div class="lang-btn-emoji">🌏</div>
+                <div class="lang-btn-name">English</div>
+                <div class="lang-btn-style">Casual English</div>
+            </div>
+        </div>
     </div>
     <div class="webcam-container" id="webcam-preview">
         <video id="webcam-video" autoplay playsinline muted></video>
@@ -693,6 +788,35 @@
         function updateInteractionTime() {
             lastInteractionTime = Date.now();
         }
+
+        // ─── Language Picker ───
+        window.chosenLang = null;
+        window.chooseLang = function(lang) {
+            window.chosenLang = lang;
+            window.lastDetectedLang = lang;
+            
+            // Dismiss picker with animation
+            const picker = document.getElementById('lang-picker');
+            picker.classList.add('hidden');
+            setTimeout(() => picker.remove(), 600);
+
+            // Update greeting based on language
+            const greetings = {
+                'ta': "Enna da, something brought you here... I'm all ears, take your time 🌿",
+                'te': "Em ayindi ra, something's on your mind... I'm here, no rush 🌿",
+                'hi': "Kya hua yaar, something brought you here... bata, I'm listening 🌿",
+                'en': "Something brought you here... I'm listening, whenever you're ready ✨"
+            };
+            const firstMsg = chatMessages.querySelector('.message.ai');
+            if (firstMsg) firstMsg.innerText = greetings[lang] || greetings['en'];
+
+            // Update Voice Tone tile language display
+            const langNames = { 'en': 'English', 'ta': 'Tamil', 'te': 'Telugu', 'hi': 'Hindi' };
+            const toneSub = document.getElementById('tile-voice-sub');
+            if (toneSub) toneSub.innerText = `lang: ${langNames[lang]} | chosen`;
+
+            console.log(`Language chosen: ${lang}`);
+        };
 
 
         function appendMessage(role, text) {
@@ -941,7 +1065,7 @@
                             gender: window.currentDetections.gender
                         } : null,
                         voice_tone: window.lastVoiceTone || null,
-                        detected_lang: window.lastDetectedLang || 'en'
+                        detected_lang: window.chosenLang || window.lastDetectedLang || 'en'
                     })
                 });
 
