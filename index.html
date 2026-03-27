@@ -358,6 +358,22 @@
             color: #fbbf24;
         }
 
+        /* Dynamic Risk Glow on Chat Container */
+        #chat-container.risk-glow-low {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.2), 0 12px 40px rgba(0,0,0,0.3);
+        }
+        #chat-container.risk-glow-mid {
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.3), 0 12px 40px rgba(0,0,0,0.3);
+        }
+        #chat-container.risk-glow-high {
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.4), 0 12px 40px rgba(0,0,0,0.3);
+            animation: riskPulse 2s infinite;
+        }
+        @keyframes riskPulse {
+            0%, 100% { box-shadow: 0 0 30px rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 45px rgba(239, 68, 68, 0.6); }
+        }
+
         /* Feedback Buttons */
         .feedback-area {
             display: flex;
@@ -907,6 +923,13 @@
                         tile.classList.add('flash');
                         setTimeout(() => tile.classList.remove('flash'), 800);
                     });
+
+                    // ─── Dynamic Risk Glow on Chat Container ───
+                    const chatBox = document.getElementById('chat-container');
+                    chatBox.classList.remove('risk-glow-low', 'risk-glow-mid', 'risk-glow-high');
+                    if (a.risk_score >= 0.6) chatBox.classList.add('risk-glow-high');
+                    else if (a.risk_score >= 0.3) chatBox.classList.add('risk-glow-mid');
+                    else chatBox.classList.add('risk-glow-low');
                 }
 
                 captionEl.innerText = `AI: ${aiText}`;
@@ -1243,11 +1266,22 @@
                         // Get the most likely emotion
                         const expressions = detections.expressions;
                         const bestEmotion = Object.keys(expressions).reduce((a, b) => expressions[a] > expressions[b] ? a : b);
+                        const bestScore = expressions[bestEmotion];
                         
                         // Only trigger if confidence is reasonable
-                        if (expressions[bestEmotion] > 0.4) {
+                        if (bestScore > 0.4) {
                             emotionText.innerText = bestEmotion.toUpperCase();
                             setEmotion(bestEmotion);
+
+                            // ─── Real-time Signal Tile Update ───
+                            const tiles = document.getElementById('trace-tiles');
+                            if (tiles) {
+                                tiles.style.display = 'flex';
+                                const sigVal = document.getElementById('tile-signal-value');
+                                if (sigVal) sigVal.innerText = bestEmotion.toUpperCase();
+                                const sigSub = document.getElementById('tile-signal-sub');
+                                if (sigSub) sigSub.innerText = `face: ${bestEmotion} (${bestScore.toFixed(2)}) | live`;
+                            }
                             
                             // Proactive Engagement Logic
                             if (!proactiveCooldown && bestEmotion !== 'neutral' && (Date.now() - lastInteractionTime) > 20000) {
